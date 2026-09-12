@@ -2,7 +2,7 @@
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -283,67 +283,5 @@ namespace ShareX.ScreenCaptureLib
             }
         }
 
-        #region Not in use
-
-        private byte[,] windows7Corner = new byte[,]
-        {
-            { 0, 0 }, { 1, 0 }, { 2, 0 }, { 3, 0 }, { 4, 0 },
-            { 0, 1 }, { 1, 1 }, { 2, 1 },
-            { 0, 2 }, { 1, 2 },
-            { 0, 3 },
-            { 0, 4 }
-        };
-
-        private byte[,] windowsVistaCorner = new byte[,]
-        {
-            { 0, 0 }, { 1, 0 }, { 2, 0 }, { 3, 0 },
-            { 0, 1 }, { 1, 1 },
-            { 0, 2 },
-            { 0, 3 }
-        };
-
-        private Bitmap RemoveCorners(Image img)
-        {
-            byte[,] corner;
-
-            if (Helpers.IsWindows7())
-            {
-                corner = windows7Corner;
-            }
-            else if (Helpers.IsWindowsVista())
-            {
-                corner = windowsVistaCorner;
-            }
-            else
-            {
-                return null;
-            }
-
-            return RemoveCorners(img, corner);
-        }
-
-        private Bitmap RemoveCorners(Image img, byte[,] cornerData)
-        {
-            Bitmap bmp = new Bitmap(img);
-
-            for (int i = 0; i < cornerData.GetLength(0); i++)
-            {
-                // Left top corner
-                bmp.SetPixel(cornerData[i, 0], cornerData[i, 1], Color.Transparent);
-
-                // Right top corner
-                bmp.SetPixel(bmp.Width - cornerData[i, 0] - 1, cornerData[i, 1], Color.Transparent);
-
-                // Left bottom corner
-                bmp.SetPixel(cornerData[i, 0], bmp.Height - cornerData[i, 1] - 1, Color.Transparent);
-
-                // Right bottom corner
-                bmp.SetPixel(bmp.Width - cornerData[i, 0] - 1, bmp.Height - cornerData[i, 1] - 1, Color.Transparent);
-            }
-
-            return bmp;
-        }
-
-        #endregion Not in use
     }
 }

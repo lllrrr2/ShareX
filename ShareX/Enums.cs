@@ -1,8 +1,8 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -54,6 +54,10 @@ namespace ShareX
         Automatic, // Localized
         [Description("العربية (Arabic)")]
         Arabic,
+        [Description("Čeština (Czech)")]
+        Czech,
+        [Description("Dansk (Danish)")]
+        Danish,
         [Description("Nederlands (Dutch)")]
         Dutch,
         [Description("English")]
@@ -64,6 +68,8 @@ namespace ShareX
         German,
         [Description("עִברִית (Hebrew)")]
         Hebrew,
+        [Description("हिन्दी (Hindi)")]
+        Hindi,
         [Description("Magyar (Hungarian)")]
         Hungarian,
         [Description("Bahasa Indonesia (Indonesian)")]
@@ -92,6 +98,10 @@ namespace ShareX
         SimplifiedChinese,
         [Description("Español (Spanish)")]
         Spanish,
+        [Description("Svenska (Swedish)")]
+        Swedish,
+        [Description("ไทย (Thai)")]
+        Thai,
         [Description("繁體中文 (Traditional Chinese)")]
         TraditionalChinese,
         [Description("Türkçe (Turkish)")]
@@ -144,12 +154,14 @@ namespace ShareX
         PerformActions = 1 << 11,
         CopyFileToClipboard = 1 << 12,
         CopyFilePathToClipboard = 1 << 13,
-        ShowInExplorer = 1 << 14,
-        ScanQRCode = 1 << 15,
-        DoOCR = 1 << 16,
-        ShowBeforeUploadWindow = 1 << 17,
-        UploadImageToHost = 1 << 18,
-        DeleteFile = 1 << 19
+        CopyFolderPathToClipboard = 1 << 14,
+        ShowInExplorer = 1 << 15,
+        AnalyzeImage = 1 << 16,
+        ScanQRCode = 1 << 17,
+        DoOCR = 1 << 18,
+        ShowBeforeUploadWindow = 1 << 19,
+        UploadImageToHost = 1 << 20,
+        DeleteFile = 1 << 21
     }
 
     [Flags]
@@ -205,8 +217,6 @@ namespace ShareX
         [Category(EnumExtensions.HotkeyType_Category_Upload)]
         ShortenURL,
         [Category(EnumExtensions.HotkeyType_Category_Upload)]
-        TweetMessage,
-        [Category(EnumExtensions.HotkeyType_Category_Upload)]
         StopUploads,
         // Screen capture
         [Category(EnumExtensions.HotkeyType_Category_ScreenCapture)]
@@ -220,10 +230,6 @@ namespace ShareX
         [Category(EnumExtensions.HotkeyType_Category_ScreenCapture)]
         RectangleRegion,
         [Category(EnumExtensions.HotkeyType_Category_ScreenCapture)]
-        RectangleLight,
-        [Category(EnumExtensions.HotkeyType_Category_ScreenCapture)]
-        RectangleTransparent,
-        [Category(EnumExtensions.HotkeyType_Category_ScreenCapture)]
         CustomRegion,
         [Category(EnumExtensions.HotkeyType_Category_ScreenCapture)]
         LastRegion,
@@ -233,6 +239,8 @@ namespace ShareX
         AutoCapture,
         [Category(EnumExtensions.HotkeyType_Category_ScreenCapture)]
         StartAutoCapture,
+        [Category(EnumExtensions.HotkeyType_Category_ScreenCapture)]
+        StopAutoCapture,
         // Screen record
         [Category(EnumExtensions.HotkeyType_Category_ScreenRecord)]
         ScreenRecorder,
@@ -282,6 +290,12 @@ namespace ShareX
         [Category(EnumExtensions.HotkeyType_Category_Tools)]
         ImageViewer,
         [Category(EnumExtensions.HotkeyType_Category_Tools)]
+        BackgroundRemover,
+        [Category(EnumExtensions.HotkeyType_Category_Tools)]
+        ImageComparer,
+        [Category(EnumExtensions.HotkeyType_Category_Tools)]
+        IconConverter,
+        [Category(EnumExtensions.HotkeyType_Category_Tools)]
         ImageCombiner,
         [Category(EnumExtensions.HotkeyType_Category_Tools)]
         ImageSplitter,
@@ -290,7 +304,11 @@ namespace ShareX
         [Category(EnumExtensions.HotkeyType_Category_Tools)]
         VideoConverter,
         [Category(EnumExtensions.HotkeyType_Category_Tools)]
+        VideoTrimmer,
+        [Category(EnumExtensions.HotkeyType_Category_Tools)]
         VideoThumbnailer,
+        [Category(EnumExtensions.HotkeyType_Category_Tools)]
+        AnalyzeImage,
         [Category(EnumExtensions.HotkeyType_Category_Tools)]
         OCR,
         [Category(EnumExtensions.HotkeyType_Category_Tools)]
@@ -317,6 +335,8 @@ namespace ShareX
         ActiveWindowTopMost,
         [Category(EnumExtensions.HotkeyType_Category_Tools)]
         InspectWindow,
+        [Category(EnumExtensions.HotkeyType_Category_Tools)]
+        NetworkMonitor,
         [Category(EnumExtensions.HotkeyType_Category_Tools)]
         MonitorTest,
         // Other
@@ -373,24 +393,15 @@ namespace ShareX
         Cancel
     }
 
-    public enum ImagePreviewVisibility // Localized
-    {
-        Show, Hide, Automatic
-    }
-
-    public enum ImagePreviewLocation // Localized
-    {
-        Side, Bottom
-    }
-
     public enum ThumbnailTitleLocation // Localized
     {
         Top, Bottom
     }
 
-    public enum RegionCaptureType
+    public enum ScreenTearingTestMode
     {
-        Default, Light, Transparent
+        VerticalLines,
+        HorizontalLines
     }
 
 #if !MicrosoftStore
@@ -412,19 +423,6 @@ namespace ShareX
         EnabledByPolicy = StartupTaskState.EnabledByPolicy
     }
 #endif
-
-    public enum BalloonTipClickAction
-    {
-        None,
-        OpenURL,
-        OpenDebugLog
-    }
-
-    public enum TaskViewMode // Localized
-    {
-        ListView,
-        ThumbnailView
-    }
 
     public enum NativeMessagingAction
     {

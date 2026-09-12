@@ -2,7 +2,7 @@
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -24,11 +24,12 @@
 #endregion License Information (GPL v3)
 
 using Newtonsoft.Json;
+using ShareX.AvaloniaUI.Windows;
 using ShareX.HelpersLib;
+using ShareX.ImageEditor.Integration;
 using ShareX.ImageEffectsLib;
-using ShareX.IndexerLib;
-using ShareX.MediaLib;
 using ShareX.ScreenCaptureLib;
+using ShareX.Tools;
 using ShareX.UploadersLib;
 using System;
 using System.Collections.Generic;
@@ -53,7 +54,7 @@ namespace ShareX
         public HotkeyType Job = HotkeyType.None;
 
         public bool UseDefaultAfterCaptureJob = true;
-        public AfterCaptureTasks AfterCaptureJob = AfterCaptureTasks.CopyImageToClipboard | AfterCaptureTasks.SaveImageToFile | AfterCaptureTasks.UploadImageToHost;
+        public AfterCaptureTasks AfterCaptureJob = AfterCaptureTasks.CopyImageToClipboard | AfterCaptureTasks.SaveImageToFile;
 
         public bool UseDefaultAfterUploadJob = true;
         public AfterUploadTasks AfterUploadJob = AfterUploadTasks.CopyURLToClipboard;
@@ -65,7 +66,7 @@ namespace ShareX
         public FileDestination TextFileDestination = FileDestination.Dropbox;
         public FileDestination FileDestination = FileDestination.Dropbox;
         public UrlShortenerType URLShortenerDestination = UrlShortenerType.BITLY;
-        public URLSharingServices URLSharingServiceDestination = URLSharingServices.Twitter;
+        public URLSharingServices URLSharingServiceDestination = URLSharingServices.Email;
 
         public bool OverrideFTP = false;
         public int FTPIndex = 0;
@@ -317,6 +318,8 @@ namespace ShareX
         public ToastClickAction ToastWindowLeftClickAction = ToastClickAction.OpenUrl;
         public ToastClickAction ToastWindowRightClickAction = ToastClickAction.CloseNotification;
         public ToastClickAction ToastWindowMiddleClickAction = ToastClickAction.AnnotateImage;
+        public int ToastWindowButtonSize = 40;
+        public List<NotificationActionButton> ToastWindowButtons = NotificationActionButton.CreateDefaultButtons();
         public bool ToastWindowAutoHide = true;
         public bool DisableNotificationsOnFullscreen = false;
         public bool UseCustomCaptureSound = false;
@@ -379,6 +382,7 @@ namespace ShareX
         public bool CaptureClientArea = false;
         public bool CaptureAutoHideTaskbar = false;
         public bool CaptureAutoHideDesktopIcons = false;
+        public bool HDRScreenshotColorCorrection = false;
         public Rectangle CaptureCustomRegion = new Rectangle(0, 0, 0, 0);
         public string CaptureCustomWindow = "";
 
@@ -386,7 +390,7 @@ namespace ShareX
 
         #region Capture / Region capture
 
-        public RegionCaptureOptions SurfaceOptions = new RegionCaptureOptions();
+        public RegionCaptureOptions RegionCaptureOptions = new RegionCaptureOptions();
 
         #endregion Capture / Region capture
 
@@ -396,13 +400,14 @@ namespace ShareX
         public int ScreenRecordFPS = 30;
         public int GIFFPS = 15;
         public bool ScreenRecordShowCursor = true;
+        public bool ScreenRecordShowTimer = true;
+        public bool ScreenRecordShowButtonLabels = true;
         public bool ScreenRecordAutoStart = true;
         public float ScreenRecordStartDelay = 0f;
         public bool ScreenRecordFixedDuration = false;
         public float ScreenRecordDuration = 3f;
         public bool ScreenRecordTwoPassEncoding = false;
         public bool ScreenRecordAskConfirmationOnAbort = false;
-        public bool ScreenRecordTransparentRegion = false;
 
         #endregion Capture / Screen recorder
 
@@ -453,16 +458,17 @@ namespace ShareX
 
     public class TaskSettingsTools
     {
-        public string ScreenColorPickerFormat = "$hex";
-        public string ScreenColorPickerFormatCtrl = "$r255, $g255, $b255";
-        public string ScreenColorPickerInfoText = "RGB: $r255, $g255, $b255$nHex: $hex$nX: $x Y: $y";
+        public ColorPickerOptions ColorPickerOptions = new ColorPickerOptions();
+        public ScreenColorPickerOptions ScreenColorPickerOptions = new ScreenColorPickerOptions();
         public PinToScreenOptions PinToScreenOptions = new PinToScreenOptions();
         public IndexerSettings IndexerSettings = new IndexerSettings();
-        public ImageBeautifierOptions ImageBeautifierOptions = new ImageBeautifierOptions();
         public ImageCombinerOptions ImageCombinerOptions = new ImageCombinerOptions();
         public VideoConverterOptions VideoConverterOptions = new VideoConverterOptions();
         public VideoThumbnailOptions VideoThumbnailOptions = new VideoThumbnailOptions();
         public BorderlessWindowSettings BorderlessWindowSettings = new BorderlessWindowSettings();
+        public AIOptions AIOptions = new AIOptions();
+        public ImageEditorOptions ImageEditorOptions = new ImageEditorOptions();
+        public BackgroundRemoverOptions BackgroundRemoverOptions = new BackgroundRemoverOptions();
     }
 
     public class TaskSettingsAdvanced

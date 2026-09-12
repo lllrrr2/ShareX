@@ -1,8 +1,8 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -24,10 +24,13 @@
 #endregion License Information (GPL v3)
 
 using ShareX.HelpersLib;
-using ShareX.Properties;
+using ShareX.Localization;
 using System;
 using System.IO;
 using System.Windows.Forms;
+using MessageBox = ShareX.AvaloniaUI.MessageBox;
+using MessageBoxButtons = ShareX.AvaloniaUI.MessageBoxButtons;
+using MessageBoxIcon = ShareX.AvaloniaUI.MessageBoxIcon;
 
 namespace ShareX
 {
@@ -41,14 +44,14 @@ namespace ShareX
         private static readonly string ShellExtMenuFilesCmd = $@"{ShellExtMenuFiles}\command";
         private static readonly string ShellExtMenuDirectory = $@"Software\Classes\Directory\shell\{ShellExtMenuName}";
         private static readonly string ShellExtMenuDirectoryCmd = $@"{ShellExtMenuDirectory}\command";
-        private static readonly string ShellExtDesc = Resources.IntegrationHelpers_UploadWithShareX;
+        private static readonly string ShellExtDesc = Strings.IntegrationHelpers_UploadWithShareX;
         private static readonly string ShellExtIcon = $"{ApplicationPath},0";
         private static readonly string ShellExtPath = $"{ApplicationPath} \"%1\"";
 
         private static readonly string ShellExtEditName = "ShareXImageEditor";
         private static readonly string ShellExtEditImage = $@"Software\Classes\SystemFileAssociations\image\shell\{ShellExtEditName}";
         private static readonly string ShellExtEditImageCmd = $@"{ShellExtEditImage}\command";
-        private static readonly string ShellExtEditDesc = Resources.IntegrationHelpers_EditWithShareX;
+        private static readonly string ShellExtEditDesc = Strings.IntegrationHelpers_EditWithShareX;
         private static readonly string ShellExtEditIcon = $"{ApplicationPath},0";
         private static readonly string ShellExtEditPath = $"{ApplicationPath} -ImageEditor \"%1\"";
 
@@ -400,7 +403,7 @@ namespace ShareX
                 return;
             }
 
-            MessageBox.Show(Resources.ApplicationSettingsForm_cbSteamShowInApp_CheckedChanged_For_settings_to_take_effect_ShareX_needs_to_be_reopened_from_Steam_,
+            MessageBox.Show(Strings.ApplicationSettingsForm_cbSteamShowInApp_CheckedChanged_For_settings_to_take_effect_ShareX_needs_to_be_reopened_from_Steam_,
                 "ShareX", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 

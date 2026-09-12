@@ -2,7 +2,7 @@
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -26,20 +26,18 @@
 using ShareX.HelpersLib;
 using System.ComponentModel;
 using System.Drawing;
-using System.Drawing.Design;
 
 namespace ShareX.ImageEffectsLib
 {
     [Description("Background")]
     public class DrawBackground : ImageEffect
     {
-        [DefaultValue(typeof(Color), "Black"), Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
+        [DefaultValue(typeof(Color), "Black")]
         public Color Color { get; set; }
 
         [DefaultValue(false)]
         public bool UseGradient { get; set; }
 
-        [Editor(typeof(GradientEditor), typeof(UITypeEditor))]
         public GradientInfo Gradient { get; set; }
 
         public DrawBackground()

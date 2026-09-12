@@ -1,8 +1,8 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -23,17 +23,24 @@
 
 #endregion License Information (GPL v3)
 
+using ShareX.AvaloniaUI.Integration;
 using ShareX.HelpersLib;
-using ShareX.Properties;
+using ShareX.HistoryLib;
+using ShareX.ImageEditor.Integration;
+using ShareX.Localization;
 using ShareX.UploadersLib;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.Loader;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using MessageBox = ShareX.AvaloniaUI.MessageBox;
+using MessageBoxButtons = ShareX.AvaloniaUI.MessageBoxButtons;
+using MessageBoxIcon = ShareX.AvaloniaUI.MessageBoxIcon;
 
 #if MicrosoftStore
 using Windows.ApplicationModel;
@@ -117,7 +124,6 @@ namespace ShareX
         public static bool SilentRun { get; private set; }
         public static bool Sandbox { get; private set; }
         public static bool IsAdmin { get; private set; }
-        public static bool SteamFirstTimeConfig { get; private set; }
         public static bool IgnoreHotkeyWarning { get; private set; }
         public static bool PuushMode { get; private set; }
 
@@ -125,6 +131,7 @@ namespace ShareX
         internal static TaskSettings DefaultTaskSettings { get; set; }
         internal static UploadersConfig UploadersConfig { get; set; }
         internal static HotkeysConfig HotkeysConfig { get; set; }
+        internal static HistoryManagerSQLite HistoryManager { get; set; }
 
         internal static MainForm MainForm { get; private set; }
         internal static Stopwatch StartTimer { get; private set; }
@@ -178,7 +185,7 @@ namespace ShareX
             }
         }
 
-        public const string HistoryFileName = "History.json";
+        public const string HistoryFileName = "History.db";
 
         public static string HistoryFilePath
         {
@@ -190,7 +197,7 @@ namespace ShareX
             }
         }
 
-        public const string HistoryFileNameOld = "History.xml";
+        public const string HistoryFileNameOld = "History.json";
 
         public static string HistoryFilePathOld
         {
@@ -255,6 +262,7 @@ namespace ShareX
         }
 
         public static string ImageEffectsFolder => Path.Combine(PersonalFolder, "ImageEffects");
+        public static string ModelsFolder => Path.Combine(PersonalFolder, "Models");
 
         private static string PersonalPathDetectionMethod;
 
@@ -265,7 +273,7 @@ namespace ShareX
         [STAThread]
         private static void Main(string[] args)
         {
-            HandleExceptions();
+            StartupWork();
 
             StartTimer = Stopwatch.StartNew();
 
@@ -290,10 +298,7 @@ namespace ShareX
                 {
                     singleInstanceManager.ArgumentsReceived += SingleInstanceManager_ArgumentsReceived;
 
-                    using (TimerResolutionManager timerResolutionManager = new TimerResolutionManager())
-                    {
-                        Run();
-                    }
+                    Run(args);
 
                     if (restartRequested)
                     {
@@ -314,10 +319,9 @@ namespace ShareX
             DebugHelper.Flush();
         }
 
-        private static void Run()
+        private static void Run(string[] args)
         {
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
+            ApplicationConfiguration.Initialize();
 
             DebugHelper.WriteLine("ShareX starting.");
             DebugHelper.WriteLine("Version: " + VersionText);
@@ -329,15 +333,12 @@ namespace ShareX
                 DebugHelper.WriteLine("Personal path detection method: " + PersonalPathDetectionMethod);
             }
             DebugHelper.WriteLine("Operating system: " + Helpers.GetOperatingSystemProductName(true));
+            DebugHelper.WriteLine(".NET version: " + Environment.Version);
             DebugHelper.WriteLine("Running as elevated process: " + IsAdmin);
 
             SilentRun = CLI.IsCommandExist("silent", "s");
 #if MicrosoftStore
             SilentRun = SilentRun || AppInstance.GetActivatedEventArgs()?.Kind == ActivationKind.StartupTask;
-#endif
-
-#if STEAM
-            SteamFirstTimeConfig = CLI.IsCommandExist("SteamConfig");
 #endif
 
             IgnoreHotkeyWarning = CLI.IsCommandExist("NoHotkeys");
@@ -347,21 +348,45 @@ namespace ShareX
             CheckPuushMode();
             DebugWriteFlags();
 
+            DebugHelper.WriteLine("Avalonia application initializing.");
+            AvaloniaBootstrapper.Initialize(args, StartApplication, StopApplication);
+
             SettingManager.LoadInitialSettings();
 
-            Uploader.UpdateServicePointManager();
             UpdateManager = new ShareXUpdateManager();
             LanguageHelper.ChangeLanguage(Settings.Language);
             CleanupManager.CleanupAsync();
-            Helpers.TryFixHandCursor();
 
-            DebugHelper.WriteLine("MainForm init started.");
-            MainForm = new MainForm();
-            DebugHelper.WriteLine("MainForm init finished.");
-
-            Application.Run(MainForm);
+            DebugHelper.WriteLine("Avalonia application starting.");
+            AvaloniaBootstrapper.Run();
 
             CloseSequence();
+        }
+
+        private static async Task StartApplication()
+        {
+            ImageEditorIntegration.Initialize();
+
+            if (Settings.ShowStartScreen)
+            {
+                DebugHelper.WriteLine("Start screen opening.");
+                StartScreenWindow startScreen = new StartScreenWindow();
+                await startScreen.ShowAsync();
+                DebugHelper.WriteLine("Start screen closed.");
+            }
+
+            DebugHelper.WriteLine("MainForm host init started.");
+            MainForm = new MainForm();
+            await MainForm.InitializeAsync();
+            DebugHelper.WriteLine("MainForm host init finished.");
+        }
+
+        private static void StopApplication()
+        {
+            if (MainForm is { IsDisposed: false })
+            {
+                MainForm.ExitApplication();
+            }
         }
 
         public static void CloseSequence()
@@ -373,6 +398,7 @@ namespace ShareX
                 DebugHelper.WriteLine("ShareX closing.");
 
                 WatchFolderManager?.Dispose();
+                SettingManager.HistoryClose();
                 SettingManager.SaveAllSettings();
 
                 DebugHelper.WriteLine("ShareX closed.");
@@ -383,7 +409,19 @@ namespace ShareX
         {
             restartRequested = true;
             restartAsAdmin = asAdmin;
-            Application.Exit();
+            Exit();
+        }
+
+        public static void Exit()
+        {
+            if (MainForm is { IsDisposed: false } mainForm)
+            {
+                mainForm.InvokeSafe(mainForm.ExitApplication);
+            }
+            else
+            {
+                AvaloniaBootstrapper.Shutdown();
+            }
         }
 
         private static void SingleInstanceManager_ArgumentsReceived(string[] arguments)
@@ -428,11 +466,11 @@ namespace ShareX
         {
             if (args == null || args.Length < 1)
             {
-                if (MainForm.niTray != null && MainForm.niTray.Visible)
+                if (Program.Settings.ShowTray)
                 {
                     // Workaround for Windows startup tray icon bug
-                    MainForm.niTray.Visible = false;
-                    MainForm.niTray.Visible = true;
+                    MainWindowIntegration.SetTrayVisible(false);
+                    MainWindowIntegration.SetTrayVisible(true);
                 }
 
                 MainForm.ForceActivate();
@@ -496,7 +534,7 @@ namespace ShareX
                     {
                         StringBuilder sb = new StringBuilder();
 
-                        sb.AppendFormat("{0} \"{1}\"", Resources.Program_Run_Unable_to_create_folder_, PersonalFolder);
+                        sb.AppendFormat("{0} \"{1}\"", Strings.Program_Run_Unable_to_create_folder_, PersonalFolder);
                         sb.AppendLine();
 
                         if (!string.IsNullOrEmpty(PersonalPathDetectionMethod))
@@ -507,7 +545,7 @@ namespace ShareX
                         sb.AppendLine();
                         sb.Append(e);
 
-                        MessageBox.Show(sb.ToString(), "ShareX - " + Resources.Error, MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        MessageBox.Show(sb.ToString(), "ShareX - " + Strings.Error, MessageBoxButtons.OK, MessageBoxIcon.Error);
                         CustomPersonalPath = "";
                     }
                 }
@@ -609,7 +647,7 @@ namespace ShareX
                     catch (UnauthorizedAccessException e)
                     {
                         DebugHelper.WriteException(e);
-                        MessageBox.Show(string.Format(Resources.Program_WritePersonalPathConfig_Cant_access_to_file, PersonalPathConfigFilePath),
+                        MessageBox.Show(string.Format(Strings.Program_WritePersonalPathConfig_Cant_access_to_file, PersonalPathConfigFilePath),
                             "ShareX", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     }
                     catch (Exception e)
@@ -623,8 +661,20 @@ namespace ShareX
             return false;
         }
 
-        private static void HandleExceptions()
+        private static void StartupWork()
         {
+            AssemblyLoadContext.Default.Resolving += (ctx, asmName) =>
+            {
+                if (string.IsNullOrEmpty(asmName.CultureName) || !asmName.Name.EndsWith(".resources", StringComparison.OrdinalIgnoreCase))
+                {
+                    return null;
+                }
+
+                string baseDir = AppContext.BaseDirectory;
+                string path = Path.Combine(baseDir, "Languages", asmName.CultureName, asmName.Name + ".dll");
+                return File.Exists(path) ? ctx.LoadFromAssemblyPath(path) : null;
+            };
+
 #if DEBUG
             if (Debugger.IsAttached)
             {
@@ -654,10 +704,7 @@ namespace ShareX
 
         private static void OnError(Exception e)
         {
-            using (ErrorForm errorForm = new ErrorForm(e.Message, $"{e}\r\n\r\n{Title}", LogsFilePath, Links.GitHubIssues))
-            {
-                errorForm.ShowDialog();
-            }
+            ErrorWindowIntegration.Show(e.Message, $"{e}\r\n\r\n{Title}", LogsFilePath, Links.GitHubIssues);
         }
 
         private static bool CheckUninstall()
@@ -694,7 +741,6 @@ namespace ShareX
             if (Portable) flags.Add(nameof(Portable));
             if (SilentRun) flags.Add(nameof(SilentRun));
             if (Sandbox) flags.Add(nameof(Sandbox));
-            if (SteamFirstTimeConfig) flags.Add(nameof(SteamFirstTimeConfig));
             if (IgnoreHotkeyWarning) flags.Add(nameof(IgnoreHotkeyWarning));
             if (SystemOptions.DisableUpdateCheck) flags.Add(nameof(SystemOptions.DisableUpdateCheck));
             if (SystemOptions.DisableUpload) flags.Add(nameof(SystemOptions.DisableUpload));

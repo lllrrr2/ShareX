@@ -1,8 +1,8 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -23,9 +23,10 @@
 
 #endregion License Information (GPL v3)
 
+using ShareX.AvaloniaUI.Theming;
 using ShareX.HelpersLib;
 using ShareX.HistoryLib;
-using ShareX.Properties;
+using ShareX.Localization;
 using ShareX.ScreenCaptureLib;
 using ShareX.UploadersLib;
 using System;
@@ -34,7 +35,9 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Forms;
+using MessageBox = ShareX.AvaloniaUI.MessageBox;
+using MessageBoxButtons = ShareX.AvaloniaUI.MessageBoxButtons;
+using MessageBoxIcon = ShareX.AvaloniaUI.MessageBoxIcon;
 
 namespace ShareX
 {
@@ -52,7 +55,9 @@ namespace ShareX
             }
         }
 
-        private const string UploadersConfigFileName = "UploadersConfig.json";
+        private const string UploadersConfigFileNamePrefix = "UploadersConfig";
+        private const string UploadersConfigFileNameExtension = "json";
+        private const string UploadersConfigFileName = UploadersConfigFileNamePrefix + "." + UploadersConfigFileNameExtension;
 
         private static string UploadersConfigFilePath
         {
@@ -71,7 +76,9 @@ namespace ShareX
                     uploadersConfigFolder = Program.PersonalFolder;
                 }
 
-                return Path.Combine(uploadersConfigFolder, UploadersConfigFileName);
+                string uploadersConfigFileName = GetUploadersConfigFileName(uploadersConfigFolder);
+
+                return Path.Combine(uploadersConfigFolder, uploadersConfigFileName);
             }
         }
 
@@ -146,7 +153,10 @@ namespace ShareX
             Settings.SettingsSaveFailed += Settings_SettingsSaveFailed;
             DefaultTaskSettings = Settings.DefaultTaskSettings;
             ApplicationConfigBackwardCompatibilityTasks();
+            Settings.ThemeOptions ??= new ApplicationThemeOptions();
+            ThemeManager.Configure(Settings.ThemeOptions);
             MigrateHistoryFile();
+            HistoryConnect();
         }
 
         private static void Settings_SettingsSaveFailed(Exception e)
@@ -155,14 +165,14 @@ namespace ShareX
 
             if (e is UnauthorizedAccessException || e is FileNotFoundException)
             {
-                message = Resources.YourAntiVirusSoftwareOrTheControlledFolderAccessFeatureInWindowsCouldBeBlockingShareX;
+                message = Strings.YourAntiVirusSoftwareOrTheControlledFolderAccessFeatureInWindowsCouldBeBlockingShareX;
             }
             else
             {
                 message = e.Message;
             }
 
-            TaskHelpers.ShowNotificationTip(message, "ShareX - " + Resources.FailedToSaveSettings, 5000);
+            TaskHelpers.ShowNotificationTip(message, "ShareX - " + Strings.FailedToSaveSettings, 5000);
         }
 
         public static void LoadUploadersConfig(bool fallbackSupport = true)
@@ -189,37 +199,51 @@ namespace ShareX
             LoadHotkeysConfig();
         }
 
+        private static string GetUploadersConfigFileName(string destinationFolder)
+        {
+            if (string.IsNullOrEmpty(destinationFolder))
+            {
+                return UploadersConfigFileName;
+            }
+
+            if (Settings != null && Settings.UseMachineSpecificUploadersConfig)
+            {
+                string sanitizedMachineName = FileHelpers.SanitizeFileName(Environment.MachineName.ToLowerInvariant());
+
+                if (!string.IsNullOrEmpty(sanitizedMachineName))
+                {
+                    string machineSpecificFileName = $"{UploadersConfigFileNamePrefix}-{sanitizedMachineName}.{UploadersConfigFileNameExtension}";
+                    string machineSpecificPath = Path.Combine(destinationFolder, machineSpecificFileName);
+
+                    if (!File.Exists(machineSpecificPath))
+                    {
+                        string defaultFilePath = Path.Combine(destinationFolder, UploadersConfigFileName);
+
+                        if (File.Exists(defaultFilePath))
+                        {
+                            try
+                            {
+                                File.Copy(defaultFilePath, machineSpecificPath, false);
+                            }
+                            catch (IOException)
+                            {
+                                // Ignore copy issues; file may have been created in the meantime.
+                            }
+                        }
+                    }
+
+                    return machineSpecificFileName;
+                }
+            }
+
+            return UploadersConfigFileName;
+        }
+
         private static void ApplicationConfigBackwardCompatibilityTasks()
         {
             if (SystemOptions.DisableUpload)
             {
                 DefaultTaskSettings.AfterCaptureJob = DefaultTaskSettings.AfterCaptureJob.Remove(AfterCaptureTasks.UploadImageToHost);
-            }
-
-            if (Settings.IsUpgradeFrom("14.1.1"))
-            {
-                if (Helpers.IsDefaultSettings(Settings.Themes, ShareXTheme.GetDefaultThemes(), (x, y) => x.Name == y.Name))
-                {
-                    if (!Settings.Themes.IsValidIndex(Settings.SelectedTheme))
-                    {
-                        Settings.SelectedTheme = 0;
-                    }
-
-                    ShareXTheme selectedTheme = Settings.Themes[Settings.SelectedTheme];
-
-                    Settings.Themes = ShareXTheme.GetDefaultThemes();
-
-                    int index = Settings.Themes.FindIndex(x => x.Name.Equals(selectedTheme.Name, StringComparison.OrdinalIgnoreCase));
-
-                    if (index >= 0)
-                    {
-                        Settings.SelectedTheme = index;
-                    }
-                    else
-                    {
-                        Settings.SelectedTheme = 0;
-                    }
-                }
             }
 
             if (Settings.IsUpgradeFrom("14.1.2"))
@@ -242,11 +266,21 @@ namespace ShareX
                 {
                     Settings.UpdateChannel = UpdateChannel.PreRelease;
                 }
+            }
+        }
 
-                if (!DefaultTaskSettings.CaptureSettings.SurfaceOptions.UseDimming)
-                {
-                    DefaultTaskSettings.CaptureSettings.SurfaceOptions.BackgroundDimStrength = 0;
-                }
+        public static void HistoryConnect()
+        {
+            HistoryClose();
+            Program.HistoryManager = new HistoryManagerSQLite(Program.HistoryFilePath);
+        }
+
+        public static void HistoryClose()
+        {
+            if (Program.HistoryManager != null)
+            {
+                Program.HistoryManager.Dispose();
+                Program.HistoryManager = null;
             }
         }
 
@@ -254,21 +288,25 @@ namespace ShareX
         {
             if (File.Exists(Program.HistoryFilePathOld))
             {
-                if (!File.Exists(Program.HistoryFilePath))
+                try
                 {
-                    DebugHelper.WriteLine($"Migrating XML history file \"{Program.HistoryFilePathOld}\" to JSON history file \"{Program.HistoryFilePath}\"");
-
-                    HistoryManagerXML historyManagerXML = new HistoryManagerXML(Program.HistoryFilePathOld);
-                    List<HistoryItem> historyItems = historyManagerXML.GetHistoryItems();
-
-                    if (historyItems.Count > 0)
+                    if (!File.Exists(Program.HistoryFilePath))
                     {
-                        HistoryManagerJSON historyManagerJSON = new HistoryManagerJSON(Program.HistoryFilePath);
-                        historyManagerJSON.AppendHistoryItems(historyItems);
-                    }
-                }
+                        DebugHelper.WriteLine($"Migrating JSON history file \"{Program.HistoryFilePathOld}\" to SQLite history file \"{Program.HistoryFilePath}\"");
 
-                FileHelpers.MoveFile(Program.HistoryFilePathOld, BackupFolder);
+                        using (HistoryManagerSQLite historyManager = new HistoryManagerSQLite(Program.HistoryFilePath))
+                        {
+                            historyManager.MigrateFromJSON(Program.HistoryFilePathOld);
+                        }
+                    }
+
+                    FileHelpers.MoveFile(Program.HistoryFilePathOld, BackupFolder);
+                }
+                catch (Exception e)
+                {
+                    DebugHelper.WriteException(e);
+                    e.ShowError();
+                }
             }
         }
 
@@ -409,6 +447,7 @@ namespace ShareX
                 if (history)
                 {
                     entries.Add(new ZipEntryInfo(Program.HistoryFilePath));
+                    HistoryClose();
                 }
 
                 ZipManager.Compress(archivePath, entries);
@@ -417,13 +456,18 @@ namespace ShareX
             catch (Exception e)
             {
                 DebugHelper.WriteException(e);
-                MessageBox.Show("Error while exporting backup:\r\n" + e, "ShareX - Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(string.Format(Strings.SettingManager_ExportBackupError, e), Strings.SettingManager_ErrorTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             finally
             {
                 msApplicationConfig?.Dispose();
                 msUploadersConfig?.Dispose();
                 msHotkeysConfig?.Dispose();
+
+                if (history)
+                {
+                    HistoryConnect();
+                }
             }
 
             return false;
@@ -433,6 +477,8 @@ namespace ShareX
         {
             try
             {
+                HistoryClose();
+
                 ZipManager.Extract(archivePath, Program.PersonalFolder, true, entry =>
                 {
                     return FileHelpers.CheckExtension(entry.Name, new string[] { "json", "xml" });
@@ -443,7 +489,11 @@ namespace ShareX
             catch (Exception e)
             {
                 DebugHelper.WriteException(e);
-                MessageBox.Show("Error while importing backup:\r\n" + e, "ShareX - Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(string.Format(Strings.SettingManager_ImportBackupError, e), Strings.SettingManager_ErrorTitle, MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            finally
+            {
+                HistoryConnect();
             }
 
             return false;

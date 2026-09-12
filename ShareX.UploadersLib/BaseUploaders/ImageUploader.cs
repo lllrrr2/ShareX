@@ -2,7 +2,7 @@
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -30,14 +30,11 @@ namespace ShareX.UploadersLib
 {
     public abstract class ImageUploader : FileUploader
     {
-        public UploadResult UploadImage(Image image, string fileName)
+        public async Task<UploadResult> UploadImageAsync(Image image, string fileName, CancellationToken cancellationToken = default)
         {
-            using (MemoryStream stream = new MemoryStream())
-            {
-                image.Save(stream, image.RawFormat);
-
-                return Upload(stream, fileName);
-            }
+            using MemoryStream stream = new MemoryStream();
+            image.Save(stream, image.RawFormat);
+            return await UploadAsync(stream, fileName, cancellationToken).ConfigureAwait(false);
         }
     }
 }

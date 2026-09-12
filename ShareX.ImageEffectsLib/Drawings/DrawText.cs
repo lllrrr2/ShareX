@@ -2,7 +2,7 @@
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -26,10 +26,8 @@
 using ShareX.HelpersLib;
 using System.ComponentModel;
 using System.Drawing;
-using System.Drawing.Design;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
-using System.Linq;
 using System.Windows.Forms;
 
 namespace ShareX.ImageEffectsLib
@@ -37,10 +35,10 @@ namespace ShareX.ImageEffectsLib
     [Description("Text watermark")]
     public class DrawText : ImageEffect
     {
-        [DefaultValue("Text watermark"), Editor(typeof(NameParserEditor), typeof(UITypeEditor))]
+        [DefaultValue("Text watermark")]
         public string Text { get; set; }
 
-        [DefaultValue(ContentAlignment.BottomRight), TypeConverter(typeof(EnumProperNameConverter))]
+        [DefaultValue(ContentAlignment.BottomRight)]
         public ContentAlignment Placement { get; set; }
 
         [DefaultValue(typeof(Point), "5, 5")]
@@ -68,16 +66,16 @@ namespace ShareX.ImageEffectsLib
             }
         }
 
-        [DefaultValue(TextRenderingHint.SystemDefault), TypeConverter(typeof(EnumProperNameConverter))]
+        [DefaultValue(TextRenderingHint.SystemDefault)]
         public TextRenderingHint TextRenderingMode { get; set; }
 
-        [DefaultValue(typeof(Color), "235, 235, 235"), Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
+        [DefaultValue(typeof(Color), "235, 235, 235")]
         public Color TextColor { get; set; }
 
         [DefaultValue(true)]
         public bool DrawTextShadow { get; set; }
 
-        [DefaultValue(typeof(Color), "Black"), Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
+        [DefaultValue(typeof(Color), "Black")]
         public Color TextShadowColor { get; set; }
 
         [DefaultValue(typeof(Point), "-1, -1")]
@@ -104,7 +102,7 @@ namespace ShareX.ImageEffectsLib
         [DefaultValue(true)]
         public bool DrawBorder { get; set; }
 
-        [DefaultValue(typeof(Color), "Black"), Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
+        [DefaultValue(typeof(Color), "Black")]
         public Color BorderColor { get; set; }
 
         [DefaultValue(1)]
@@ -113,18 +111,18 @@ namespace ShareX.ImageEffectsLib
         [DefaultValue(true)]
         public bool DrawBackground { get; set; }
 
-        [DefaultValue(typeof(Color), "42, 47, 56"), Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
+        [DefaultValue(typeof(Color), "42, 47, 56")]
         public Color BackgroundColor { get; set; }
 
         [DefaultValue(false)]
         public bool UseGradient { get; set; }
 
-        [Editor(typeof(GradientEditor), typeof(UITypeEditor))]
         public GradientInfo Gradient { get; set; }
 
         public DrawText()
         {
             this.ApplyDefaultPropertyValues();
+            Text = Localization.Strings.ImageEffectDefault_Text_watermark;
             AddDefaultGradient();
         }
 

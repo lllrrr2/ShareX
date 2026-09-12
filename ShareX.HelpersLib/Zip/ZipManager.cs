@@ -1,8 +1,8 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -44,9 +44,9 @@ namespace ShareX.HelpersLib
 
                     if (totalUncompressedSize > maxUncompressedSize)
                     {
-                        throw new Exception("Uncompressed file size of this archive is bigger than the maximum allowed file size.\r\n\r\n" +
-                            $"Archive uncompressed file size: {totalUncompressedSize.ToSizeString()}\r\n" +
-                            $"Maximum allowed file size: {maxUncompressedSize.ToSizeString()}");
+                        throw new Exception(Localization.Strings.ZipManager_Archive_too_large + "\r\n\r\n" +
+                            string.Format(Localization.Strings.ZipManager_Archive_uncompressed_file_size, totalUncompressedSize.ToSizeString()) + "\r\n" +
+                            string.Format(Localization.Strings.ZipManager_Maximum_allowed_file_size, maxUncompressedSize.ToSizeString()));
                     }
                 }
 

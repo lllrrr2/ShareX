@@ -2,7 +2,7 @@
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -140,6 +140,12 @@ namespace ShareX.UploadersLib
 
         #endregion Pastie
 
+        #region PrivateBin
+
+        public PrivateBinSettings PrivateBinSettings { get; set; } = new PrivateBinSettings();
+
+        #endregion PrivateBin
+
         #endregion Text uploaders
 
         #region File uploaders
@@ -208,6 +214,21 @@ namespace ShareX.UploadersLib
 
         #endregion Box
 
+        #region MEGA
+
+        public string MegaEmail { get; set; } = "";
+        [JsonEncrypt]
+        public string MegaPassword { get; set; } = "";
+        [System.ComponentModel.Browsable(false)]
+        [JsonEncrypt]
+        public string MegaSessionID { get; set; } = "";
+        [System.ComponentModel.Browsable(false)]
+        [JsonEncrypt]
+        public string MegaMasterKey { get; set; } = "";
+        public MegaFolderInfo MegaSelectedFolder { get; set; } = Mega.RootFolder;
+
+        #endregion MEGA
+
         #region Localhostr
 
         public string LocalhostrEmail { get; set; } = "";
@@ -241,21 +262,6 @@ namespace ShareX.UploadersLib
         public string EmailAutomaticSendTo { get; set; } = "";
 
         #endregion Email
-
-        #region Jira
-
-        public string JiraHost { get; set; } = "http://";
-        public string JiraIssuePrefix { get; set; } = "PROJECT-";
-        public OAuthInfo JiraOAuthInfo { get; set; } = null;
-
-        #endregion Jira
-
-        #region Mega
-
-        public MegaAuthInfos MegaAuthInfos { get; set; } = null;
-        public string MegaParentNodeId { get; set; } = null;
-
-        #endregion Mega
 
         #region Amazon S3
 
@@ -305,6 +311,12 @@ namespace ShareX.UploadersLib
 
         #endregion Lambda
 
+        #region img.fish
+
+        public ImgFishSettings ImgFishSettings { get; set; } = new ImgFishSettings();
+
+        #endregion img.fish
+
         #region LobFile
 
         public LobFileSettings LithiioSettings { get; set; } = new LobFileSettings();
@@ -336,7 +348,6 @@ namespace ShareX.UploadersLib
         public string SeafileEncryptedLibraryPassword { get; set; } = "";
         public bool SeafileCreateShareableURL { get; set; } = true;
         public bool SeafileCreateShareableURLRaw { get; set; } = false;
-        public bool SeafileIgnoreInvalidCert { get; set; } = false;
         public int SeafileShareDaysToExpire { get; set; } = 0;
         [JsonEncrypt]
         public string SeafileSharePassword { get; set; } = "";
@@ -409,6 +420,16 @@ namespace ShareX.UploadersLib
 
         #endregion Google Cloud Storage
 
+        #region Immich
+
+        public string ImmichURL { get; set; } = "";
+        [JsonEncrypt]
+        public string ImmichAPIKey { get; set; } = "";
+        public bool ImmichAutoCreateShareableLink { get; set; } = true;
+        public bool ImmichShowMetadata { get; set; } = false;
+
+        #endregion Immich
+
         #endregion File uploaders
 
         #region URL shorteners
@@ -466,15 +487,6 @@ namespace ShareX.UploadersLib
         #endregion URL shorteners
 
         #region Other uploaders
-
-        #region Twitter
-
-        public List<OAuthInfo> TwitterOAuthInfoList { get; set; } = new List<OAuthInfo>();
-        public int TwitterSelectedAccount { get; set; } = 0;
-        public bool TwitterSkipMessageBox { get; set; } = false;
-        public string TwitterDefaultMessage { get; set; } = "";
-
-        #endregion Twitter
 
         #region Custom uploaders
 

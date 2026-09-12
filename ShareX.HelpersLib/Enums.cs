@@ -2,7 +2,7 @@
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -88,7 +88,7 @@ namespace ShareX.HelpersLib
         Inside
     }
 
-    public enum DownloaderFormStatus
+    public enum DownloaderWindowStatus
     {
         Waiting,
         DownloadStarted,
@@ -161,12 +161,6 @@ namespace ShareX.HelpersLib
         Suffix
     }
 
-    public enum ScreenTearingTestMode
-    {
-        VerticalLines,
-        HorizontalLines
-    }
-
     public enum HotkeyStatus
     {
         Registered,
@@ -202,15 +196,6 @@ namespace ShareX.HelpersLib
         win64,
         win32,
         macos64
-    }
-
-    public enum StepType // Localized
-    {
-        Numbers,
-        LettersUppercase,
-        LettersLowercase,
-        RomanNumeralsUppercase,
-        RomanNumeralsLowercase
     }
 
     public enum CutOutEffectType // Localized

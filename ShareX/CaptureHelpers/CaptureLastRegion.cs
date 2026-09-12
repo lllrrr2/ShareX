@@ -2,7 +2,7 @@
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -23,59 +23,34 @@
 
 #endregion License Information (GPL v3)
 
-using ShareX.HelpersLib;
-using ShareX.ScreenCaptureLib;
+using ShareX.ScreenCaptureLib.Presentation.RegionCapture;
 using System.Drawing;
+using System.Threading.Tasks;
 
 namespace ShareX
 {
     public class CaptureLastRegion : CaptureRegion
     {
+        protected override async Task<TaskMetadata> ExecuteAsync(TaskSettings taskSettings)
+        {
+            if (RegionCaptureIntegration.LastRegionRectangle.IsEmpty)
+            {
+                return await ExecuteRegionCaptureAvaloniaAsync(taskSettings);
+            }
+
+            return Execute(taskSettings);
+        }
+
         protected override TaskMetadata Execute(TaskSettings taskSettings)
         {
-            switch (lastRegionCaptureType)
+            if (!RegionCaptureIntegration.LastRegionRectangle.IsEmpty)
             {
-                default:
-                case RegionCaptureType.Default:
-                    if (RegionCaptureForm.LastRegionFillPath != null)
-                    {
-                        using (Bitmap screenshot = TaskHelpers.GetScreenshot(taskSettings).CaptureFullscreen())
-                        {
-                            Bitmap bmp = RegionCaptureTasks.ApplyRegionPathToImage(screenshot, RegionCaptureForm.LastRegionFillPath, out _);
-                            return new TaskMetadata(bmp);
-                        }
-                    }
-                    else
-                    {
-                        return ExecuteRegionCapture(taskSettings);
-                    }
-                case RegionCaptureType.Light:
-                    if (!RegionCaptureLightForm.LastSelectionRectangle0Based.IsEmpty)
-                    {
-                        using (Bitmap screenshot = TaskHelpers.GetScreenshot(taskSettings).CaptureFullscreen())
-                        {
-                            Bitmap bmp = ImageHelpers.CropBitmap(screenshot, RegionCaptureLightForm.LastSelectionRectangle0Based);
-                            return new TaskMetadata(bmp);
-                        }
-                    }
-                    else
-                    {
-                        return ExecuteRegionCaptureLight(taskSettings);
-                    }
-                case RegionCaptureType.Transparent:
-                    if (!RegionCaptureTransparentForm.LastSelectionRectangle0Based.IsEmpty)
-                    {
-                        using (Bitmap screenshot = TaskHelpers.GetScreenshot(taskSettings).CaptureFullscreen())
-                        {
-                            Bitmap bmp = ImageHelpers.CropBitmap(screenshot, RegionCaptureTransparentForm.LastSelectionRectangle0Based);
-                            return new TaskMetadata(bmp);
-                        }
-                    }
-                    else
-                    {
-                        return ExecuteRegionCaptureTransparent(taskSettings);
-                    }
+                Bitmap bmp = TaskHelpers.GetScreenshot(taskSettings).CaptureRectangle(
+                    RegionCaptureIntegration.LastRegionRectangle);
+                return new TaskMetadata(bmp);
             }
+
+            return null;
         }
     }
 }

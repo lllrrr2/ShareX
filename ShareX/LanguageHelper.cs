@@ -1,8 +1,8 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -24,9 +24,7 @@
 #endregion License Information (GPL v3)
 
 using ShareX.HelpersLib;
-using ShareX.Properties;
 using System.ComponentModel;
-using System.Drawing;
 using System.Globalization;
 using System.Threading;
 using System.Windows.Forms;
@@ -67,93 +65,6 @@ namespace ShareX
             return false;
         }
 
-        public static Image GetLanguageIcon(SupportedLanguage language)
-        {
-            Image icon;
-
-            switch (language)
-            {
-                default:
-                case SupportedLanguage.Automatic:
-                    icon = Resources.globe;
-                    break;
-                case SupportedLanguage.Arabic:
-                    icon = Resources.ye;
-                    break;
-                case SupportedLanguage.Dutch:
-                    icon = Resources.nl;
-                    break;
-                case SupportedLanguage.English:
-                    icon = Resources.us;
-                    break;
-                case SupportedLanguage.French:
-                    icon = Resources.fr;
-                    break;
-                case SupportedLanguage.German:
-                    icon = Resources.de;
-                    break;
-                case SupportedLanguage.Hebrew:
-                    icon = Resources.il;
-                    break;
-                case SupportedLanguage.Hungarian:
-                    icon = Resources.hu;
-                    break;
-                case SupportedLanguage.Indonesian:
-                    icon = Resources.id;
-                    break;
-                case SupportedLanguage.Italian:
-                    icon = Resources.it;
-                    break;
-                case SupportedLanguage.Japanese:
-                    icon = Resources.jp;
-                    break;
-                case SupportedLanguage.Korean:
-                    icon = Resources.kr;
-                    break;
-                case SupportedLanguage.MexicanSpanish:
-                    icon = Resources.mx;
-                    break;
-                case SupportedLanguage.Persian:
-                    icon = Resources.ir;
-                    break;
-                case SupportedLanguage.Polish:
-                    icon = Resources.pl;
-                    break;
-                case SupportedLanguage.Portuguese:
-                    icon = Resources.pt;
-                    break;
-                case SupportedLanguage.PortugueseBrazil:
-                    icon = Resources.br;
-                    break;
-                case SupportedLanguage.Romanian:
-                    icon = Resources.ro;
-                    break;
-                case SupportedLanguage.Russian:
-                    icon = Resources.ru;
-                    break;
-                case SupportedLanguage.SimplifiedChinese:
-                    icon = Resources.cn;
-                    break;
-                case SupportedLanguage.Spanish:
-                    icon = Resources.es;
-                    break;
-                case SupportedLanguage.TraditionalChinese:
-                    icon = Resources.tw;
-                    break;
-                case SupportedLanguage.Turkish:
-                    icon = Resources.tr;
-                    break;
-                case SupportedLanguage.Ukrainian:
-                    icon = Resources.ua;
-                    break;
-                case SupportedLanguage.Vietnamese:
-                    icon = Resources.vn;
-                    break;
-            }
-
-            return icon;
-        }
-
         public static string GetCultureName(SupportedLanguage language)
         {
             string cultureName;
@@ -162,6 +73,12 @@ namespace ShareX
             {
                 case SupportedLanguage.Arabic:
                     cultureName = "ar-YE";
+                    break;
+                case SupportedLanguage.Czech:
+                    cultureName = "cs-CZ";
+                    break;
+                case SupportedLanguage.Danish:
+                    cultureName = "da-DK";
                     break;
                 case SupportedLanguage.Dutch:
                     cultureName = "nl-NL";
@@ -178,6 +95,9 @@ namespace ShareX
                     break;
                 case SupportedLanguage.Hebrew:
                     cultureName = "he-IL";
+                    break;
+                case SupportedLanguage.Hindi:
+                    cultureName = "hi-IN";
                     break;
                 case SupportedLanguage.Hungarian:
                     cultureName = "hu-HU";
@@ -220,6 +140,12 @@ namespace ShareX
                     break;
                 case SupportedLanguage.Spanish:
                     cultureName = "es-ES";
+                    break;
+                case SupportedLanguage.Swedish:
+                    cultureName = "sv-SE";
+                    break;
+                case SupportedLanguage.Thai:
+                    cultureName = "th-TH";
                     break;
                 case SupportedLanguage.TraditionalChinese:
                     cultureName = "zh-TW";

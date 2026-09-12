@@ -2,7 +2,7 @@
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -25,22 +25,17 @@
 
 using Newtonsoft.Json;
 using ShareX.HelpersLib;
-using ShareX.UploadersLib.Properties;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
-using System.Drawing;
 using System.IO;
 using System.Web;
-using System.Windows.Forms;
 
 namespace ShareX.UploadersLib.FileUploaders
 {
     public class SeafileFileUploaderService : FileUploaderService
     {
         public override FileDestination EnumValue { get; } = FileDestination.Seafile;
-
-        public override Image ServiceImage => Resources.Seafile;
 
         public override bool CheckConfig(UploadersConfig config)
         {
@@ -57,12 +52,9 @@ namespace ShareX.UploadersLib.FileUploaders
                 ShareDaysToExpire = config.SeafileShareDaysToExpire,
                 SharePassword = config.SeafileSharePassword,
                 CreateShareableURL = config.SeafileCreateShareableURL,
-                CreateShareableURLRaw = config.SeafileCreateShareableURLRaw,
-                IgnoreInvalidCert = config.SeafileIgnoreInvalidCert
+                CreateShareableURLRaw = config.SeafileCreateShareableURLRaw
             };
         }
-
-        public override TabPage GetUploadersConfigTabPage(UploadersConfigForm form) => form.tpSeafile;
     }
 
     public sealed class Seafile : FileUploader
@@ -77,7 +69,6 @@ namespace ShareX.UploadersLib.FileUploaders
         public string SharePassword { get; set; }
         public bool CreateShareableURL { get; set; }
         public bool CreateShareableURLRaw { get; set; }
-        public bool IgnoreInvalidCert { get; set; }
 
         public Seafile(string apiurl, string authtoken, string repoid)
         {
@@ -88,7 +79,7 @@ namespace ShareX.UploadersLib.FileUploaders
 
         #region SeafileAuth
 
-        public string GetAuthToken(string username, string password)
+        public async Task<string> GetAuthTokenAsync(string username, string password, CancellationToken cancellationToken = default)
         {
             string url = URLHelpers.FixPrefix(APIURL);
             url = URLHelpers.CombineURL(url, "auth-token/?format=json");
@@ -99,7 +90,8 @@ namespace ShareX.UploadersLib.FileUploaders
                 { "password", password }
             };
 
-            string response = SendRequestMultiPart(url, args);
+            string response = await SendRequestMultiPartAsync(url, args,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
 
             if (!string.IsNullOrEmpty(response))
             {
@@ -115,42 +107,26 @@ namespace ShareX.UploadersLib.FileUploaders
 
         #region SeafileChecks
 
-        public bool CheckAPIURL()
+        public async Task<bool> CheckAPIURLAsync(CancellationToken cancellationToken = default)
         {
             string url = URLHelpers.FixPrefix(APIURL);
             url = URLHelpers.CombineURL(url, "ping/?format=json");
 
-            SSLBypassHelper sslBypassHelper = null;
+            string response = await SendRequestAsync(HttpMethod.GET, url,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
 
-            try
+            if (!string.IsNullOrEmpty(response))
             {
-                if (IgnoreInvalidCert)
+                if (response == "\"pong\"")
                 {
-                    sslBypassHelper = new SSLBypassHelper();
-                }
-
-                string response = SendRequest(HttpMethod.GET, url);
-
-                if (!string.IsNullOrEmpty(response))
-                {
-                    if (response == "\"pong\"")
-                    {
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-            finally
-            {
-                if (sslBypassHelper != null)
-                {
-                    sslBypassHelper.Dispose();
+                    return true;
                 }
             }
+
+            return false;
         }
 
-        public bool CheckAuthToken()
+        public async Task<bool> CheckAuthTokenAsync(CancellationToken cancellationToken = default)
         {
             string url = URLHelpers.FixPrefix(APIURL);
             url = URLHelpers.CombineURL(url, "auth/ping/?format=json");
@@ -158,41 +134,25 @@ namespace ShareX.UploadersLib.FileUploaders
             NameValueCollection headers = new NameValueCollection();
             headers.Add("Authorization", "Token " + AuthToken);
 
-            SSLBypassHelper sslBypassHelper = null;
+            string response = await SendRequestAsync(HttpMethod.GET, url, null, headers,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
 
-            try
+            if (!string.IsNullOrEmpty(response))
             {
-                if (IgnoreInvalidCert)
+                if (response == "\"pong\"")
                 {
-                    sslBypassHelper = new SSLBypassHelper();
-                }
-
-                string response = SendRequest(HttpMethod.GET, url, null, headers);
-
-                if (!string.IsNullOrEmpty(response))
-                {
-                    if (response == "\"pong\"")
-                    {
-                        return true;
-                    }
-                }
-
-                return false;
-            }
-            finally
-            {
-                if (sslBypassHelper != null)
-                {
-                    sslBypassHelper.Dispose();
+                    return true;
                 }
             }
+
+            return false;
         }
 
         #endregion SeafileChecks
 
         #region SeafileAccountInformation
 
-        public SeafileCheckAccInfoResponse GetAccountInfo()
+        public async Task<SeafileCheckAccInfoResponse> GetAccountInfoAsync(CancellationToken cancellationToken = default)
         {
             string url = URLHelpers.FixPrefix(APIURL);
             url = URLHelpers.CombineURL(url, "account/info/?format=json");
@@ -200,40 +160,24 @@ namespace ShareX.UploadersLib.FileUploaders
             NameValueCollection headers = new NameValueCollection();
             headers.Add("Authorization", "Token " + AuthToken);
 
-            SSLBypassHelper sslBypassHelper = null;
+            string response = await SendRequestAsync(HttpMethod.GET, url, null, headers,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
 
-            try
+            if (!string.IsNullOrEmpty(response))
             {
-                if (IgnoreInvalidCert)
-                {
-                    sslBypassHelper = new SSLBypassHelper();
-                }
+                SeafileCheckAccInfoResponse AccInfoResponse = JsonConvert.DeserializeObject<SeafileCheckAccInfoResponse>(response);
 
-                string response = SendRequest(HttpMethod.GET, url, null, headers);
-
-                if (!string.IsNullOrEmpty(response))
-                {
-                    SeafileCheckAccInfoResponse AccInfoResponse = JsonConvert.DeserializeObject<SeafileCheckAccInfoResponse>(response);
-
-                    return AccInfoResponse;
-                }
-
-                return null;
+                return AccInfoResponse;
             }
-            finally
-            {
-                if (sslBypassHelper != null)
-                {
-                    sslBypassHelper.Dispose();
-                }
-            }
+
+            return null;
         }
 
         #endregion SeafileAccountInformation
 
         #region SeafileLibraries
 
-        public string GetOrMakeDefaultLibrary(string authtoken = null)
+        public async Task<string> GetOrMakeDefaultLibraryAsync(string authtoken = null, CancellationToken cancellationToken = default)
         {
             string url = URLHelpers.FixPrefix(APIURL);
             url = URLHelpers.CombineURL(url, "default-repo/?format=json");
@@ -241,36 +185,20 @@ namespace ShareX.UploadersLib.FileUploaders
             NameValueCollection headers = new NameValueCollection();
             headers.Add("Authorization", "Token " + (authtoken ?? AuthToken));
 
-            SSLBypassHelper sslBypassHelper = null;
+            string response = await SendRequestAsync(HttpMethod.GET, url, null, headers,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
 
-            try
+            if (!string.IsNullOrEmpty(response))
             {
-                if (IgnoreInvalidCert)
-                {
-                    sslBypassHelper = new SSLBypassHelper();
-                }
+                SeafileDefaultLibraryObj JsonResponse = JsonConvert.DeserializeObject<SeafileDefaultLibraryObj>(response);
 
-                string response = SendRequest(HttpMethod.GET, url, null, headers);
-
-                if (!string.IsNullOrEmpty(response))
-                {
-                    SeafileDefaultLibraryObj JsonResponse = JsonConvert.DeserializeObject<SeafileDefaultLibraryObj>(response);
-
-                    return JsonResponse.repo_id;
-                }
-
-                return null;
+                return JsonResponse.repo_id;
             }
-            finally
-            {
-                if (sslBypassHelper != null)
-                {
-                    sslBypassHelper.Dispose();
-                }
-            }
+
+            return null;
         }
 
-        public List<SeafileLibraryObj> GetLibraries()
+        public async Task<List<SeafileLibraryObj>> GetLibrariesAsync(CancellationToken cancellationToken = default)
         {
             string url = URLHelpers.FixPrefix(APIURL);
             url = URLHelpers.CombineURL(url, "repos/?format=json");
@@ -278,36 +206,20 @@ namespace ShareX.UploadersLib.FileUploaders
             NameValueCollection headers = new NameValueCollection();
             headers.Add("Authorization", "Token " + AuthToken);
 
-            SSLBypassHelper sslBypassHelper = null;
+            string response = await SendRequestAsync(HttpMethod.GET, url, null, headers,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
 
-            try
+            if (!string.IsNullOrEmpty(response))
             {
-                if (IgnoreInvalidCert)
-                {
-                    sslBypassHelper = new SSLBypassHelper();
-                }
+                List<SeafileLibraryObj> JsonResponse = JsonConvert.DeserializeObject<List<SeafileLibraryObj>>(response);
 
-                string response = SendRequest(HttpMethod.GET, url, null, headers);
-
-                if (!string.IsNullOrEmpty(response))
-                {
-                    List<SeafileLibraryObj> JsonResponse = JsonConvert.DeserializeObject<List<SeafileLibraryObj>>(response);
-
-                    return JsonResponse;
-                }
-
-                return null;
+                return JsonResponse;
             }
-            finally
-            {
-                if (sslBypassHelper != null)
-                {
-                    sslBypassHelper.Dispose();
-                }
-            }
+
+            return null;
         }
 
-        public bool ValidatePath(string path)
+        public async Task<bool> ValidatePathAsync(string path, CancellationToken cancellationToken = default)
         {
             string url = URLHelpers.FixPrefix(APIURL);
             url = URLHelpers.CombineURL(url, "repos/" + RepoID + "/dir/?p=" + path + "&format=json");
@@ -315,38 +227,22 @@ namespace ShareX.UploadersLib.FileUploaders
             NameValueCollection headers = new NameValueCollection();
             headers.Add("Authorization", "Token " + AuthToken);
 
-            SSLBypassHelper sslBypassHelper = null;
+            string response = await SendRequestAsync(HttpMethod.GET, url, null, headers,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
 
-            try
+            if (!string.IsNullOrEmpty(response))
             {
-                if (IgnoreInvalidCert)
-                {
-                    sslBypassHelper = new SSLBypassHelper();
-                }
-
-                string response = SendRequest(HttpMethod.GET, url, null, headers);
-
-                if (!string.IsNullOrEmpty(response))
-                {
-                    return true;
-                }
-
-                return false;
+                return true;
             }
-            finally
-            {
-                if (sslBypassHelper != null)
-                {
-                    sslBypassHelper.Dispose();
-                }
-            }
+
+            return false;
         }
 
         #endregion SeafileLibraries
 
         #region SeafileEncryptedLibrary
 
-        public bool DecryptLibrary(string libraryPassword)
+        public async Task<bool> DecryptLibraryAsync(string libraryPassword, CancellationToken cancellationToken = default)
         {
             string url = URLHelpers.FixPrefix(APIURL);
             url = URLHelpers.CombineURL(url, "repos/" + RepoID + "/?format=json");
@@ -357,54 +253,38 @@ namespace ShareX.UploadersLib.FileUploaders
             Dictionary<string, string> args = new Dictionary<string, string>();
             args.Add("password", libraryPassword);
 
-            SSLBypassHelper sslBypassHelper = null;
+            string response = await SendRequestMultiPartAsync(url, args, headers,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
 
-            try
+            if (!string.IsNullOrEmpty(response))
             {
-                if (IgnoreInvalidCert)
+                if (response == "\"success\"")
                 {
-                    sslBypassHelper = new SSLBypassHelper();
+                    return true;
                 }
-
-                string response = SendRequestMultiPart(url, args, headers);
-
-                if (!string.IsNullOrEmpty(response))
+                else
                 {
-                    if (response == "\"success\"")
-                    {
-                        return true;
-                    }
-                    else
-                    {
-                        return false;
-                    }
-                }
-
-                return false;
-            }
-            finally
-            {
-                if (sslBypassHelper != null)
-                {
-                    sslBypassHelper.Dispose();
+                    return false;
                 }
             }
+
+            return false;
         }
 
         #endregion SeafileEncryptedLibrary
 
         #region SeafileUpload
 
-        public override UploadResult Upload(Stream stream, string fileName)
+        protected override async Task<UploadResult> UploadCoreAsync(Stream stream, string fileName, CancellationToken cancellationToken)
         {
             if (string.IsNullOrEmpty(APIURL))
             {
-                throw new Exception("Seafile API URL is empty.");
+                throw new Exception(Localization.Strings.Seafile_API_URL_is_empty);
             }
 
             if (string.IsNullOrEmpty(AuthToken))
             {
-                throw new Exception("Seafile Authentication Token is empty.");
+                throw new Exception(Localization.Strings.Seafile_Authentication_token_is_empty);
             }
 
             if (string.IsNullOrEmpty(Path))
@@ -426,59 +306,44 @@ namespace ShareX.UploadersLib.FileUploaders
             NameValueCollection headers = new NameValueCollection();
             headers.Add("Authorization", "Token " + AuthToken);
 
-            SSLBypassHelper sslBypassHelper = null;
+            string response = await SendRequestAsync(HttpMethod.GET, url, null, headers,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
 
-            try
+            string responseURL = response.Trim('"');
+
+            Dictionary<string, string> args = new Dictionary<string, string>();
+            args.Add("filename", fileName);
+            args.Add("parent_dir", Path);
+
+            UploadResult result = await SendRequestFileAsync(responseURL, stream, fileName, "file", args, headers,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+
+            if (!IsError)
             {
-                if (IgnoreInvalidCert)
+                if (CreateShareableURL && !IsLibraryEncrypted)
                 {
-                    sslBypassHelper = new SSLBypassHelper();
-                }
+                    AllowReportProgress = false;
+                    result.URL = await ShareFileAsync(Path + fileName, cancellationToken).ConfigureAwait(false);
 
-                string response = SendRequest(HttpMethod.GET, url, null, headers);
-
-                string responseURL = response.Trim('"');
-
-                Dictionary<string, string> args = new Dictionary<string, string>();
-                args.Add("filename", fileName);
-                args.Add("parent_dir", Path);
-
-                UploadResult result = SendRequestFile(responseURL, stream, fileName, "file", args, headers);
-
-                if (!IsError)
-                {
-                    if (CreateShareableURL && !IsLibraryEncrypted)
+                    if (CreateShareableURLRaw)
                     {
-                        AllowReportProgress = false;
-                        result.URL = ShareFile(Path + fileName);
-
-                        if (CreateShareableURLRaw)
-                        {
-                            UriBuilder uriBuilder = new UriBuilder(result.URL);
-                            NameValueCollection query = HttpUtility.ParseQueryString(uriBuilder.Query);
-                            query["raw"] = "1";
-                            uriBuilder.Query = query.ToString();
-                            result.URL = $"{uriBuilder.Scheme}://{uriBuilder.Host}{uriBuilder.Path}{uriBuilder.Query}";
-                        }
-                    }
-                    else
-                    {
-                        result.IsURLExpected = false;
+                        UriBuilder uriBuilder = new UriBuilder(result.URL);
+                        NameValueCollection query = HttpUtility.ParseQueryString(uriBuilder.Query);
+                        query["raw"] = "1";
+                        uriBuilder.Query = query.ToString();
+                        result.URL = $"{uriBuilder.Scheme}://{uriBuilder.Host}{uriBuilder.Path}{uriBuilder.Query}";
                     }
                 }
-
-                return result;
-            }
-            finally
-            {
-                if (sslBypassHelper != null)
+                else
                 {
-                    sslBypassHelper.Dispose();
+                    result.IsURLExpected = false;
                 }
             }
+
+            return result;
         }
 
-        public string ShareFile(string path)
+        public async Task<string> ShareFileAsync(string path, CancellationToken cancellationToken = default)
         {
             string url = URLHelpers.FixPrefix(APIURL);
             url = URLHelpers.CombineURL(url, "repos", RepoID, "file/shared-link/");
@@ -492,25 +357,9 @@ namespace ShareX.UploadersLib.FileUploaders
             NameValueCollection headers = new NameValueCollection();
             headers.Add("Authorization", "Token " + AuthToken);
 
-            SSLBypassHelper sslBypassHelper = null;
-
-            try
-            {
-                if (IgnoreInvalidCert)
-                {
-                    sslBypassHelper = new SSLBypassHelper();
-                }
-
-                SendRequestURLEncoded(HttpMethod.PUT, url, args, headers);
-                return LastResponseInfo.Headers["Location"];
-            }
-            finally
-            {
-                if (sslBypassHelper != null)
-                {
-                    sslBypassHelper.Dispose();
-                }
-            }
+            await SendRequestURLEncodedAsync(HttpMethod.PUT, url, args, headers,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+            return LastResponseInfo?.Headers?["Location"];
         }
 
         #endregion SeafileUpload

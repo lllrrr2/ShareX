@@ -1,8 +1,8 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -24,14 +24,15 @@
 #endregion License Information (GPL v3)
 
 using ShareX.HelpersLib;
-using ShareX.MediaLib;
-using ShareX.Properties;
+using ShareX.Localization;
 using ShareX.ScreenCaptureLib;
 using System;
 using System.Drawing;
 using System.IO;
 using System.Threading.Tasks;
-using System.Windows.Forms;
+using MessageBox = ShareX.AvaloniaUI.MessageBox;
+using MessageBoxButtons = ShareX.AvaloniaUI.MessageBoxButtons;
+using MessageBoxIcon = ShareX.AvaloniaUI.MessageBoxIcon;
 
 namespace ShareX
 {
@@ -40,9 +41,9 @@ namespace ShareX
         public static bool IsRecording { get; private set; }
 
         private static ScreenRecorder screenRecorder;
-        private static ScreenRecordForm recordForm;
+        private static ScreenRecordWindow recordForm;
 
-        public static void StartStopRecording(ScreenRecordOutput outputType, ScreenRecordStartMethod startMethod, TaskSettings taskSettings)
+        public static async void StartStopRecording(ScreenRecordOutput outputType, ScreenRecordStartMethod startMethod, TaskSettings taskSettings)
         {
             if (IsRecording)
             {
@@ -53,7 +54,7 @@ namespace ShareX
             }
             else
             {
-                StartRecording(outputType, taskSettings, startMethod);
+                await StartRecording(outputType, taskSettings, startMethod);
             }
         }
 
@@ -81,7 +82,7 @@ namespace ShareX
             }
         }
 
-        private static void StartRecording(ScreenRecordOutput outputType, TaskSettings taskSettings, ScreenRecordStartMethod startMethod = ScreenRecordStartMethod.Region)
+        private static async Task StartRecording(ScreenRecordOutput outputType, TaskSettings taskSettings, ScreenRecordStartMethod startMethod = ScreenRecordStartMethod.Region)
         {
             if (outputType == ScreenRecordOutput.GIF)
             {
@@ -114,14 +115,14 @@ namespace ShareX
 
             if (!taskSettings.CaptureSettings.FFmpegOptions.IsSourceSelected)
             {
-                MessageBox.Show(Resources.FFmpeg_FFmpeg_video_and_audio_source_both_can_t_be__None__,
-                    "ShareX - " + Resources.FFmpeg_FFmpeg_error, MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show(Strings.FFmpeg_FFmpeg_video_and_audio_source_both_can_t_be__None__,
+                    "ShareX - " + Strings.FFmpeg_FFmpeg_error, MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             if (taskSettings.GeneralSettings.ToastWindowAutoHide)
             {
-                NotificationForm.CloseActiveForm();
+                NotificationWindow.CloseActiveWindow();
             }
 
             Rectangle captureRectangle = Rectangle.Empty;
@@ -130,15 +131,12 @@ namespace ShareX
             switch (startMethod)
             {
                 case ScreenRecordStartMethod.Region:
-                    if (taskSettings.CaptureSettings.ScreenRecordTransparentRegion)
+                    var selection = await RegionCaptureTasks.GetRectangleRegionAsync(
+                        taskSettings.CaptureSettings.RegionCaptureOptions);
+                    if (selection != null)
                     {
-                        RegionCaptureTasks.GetRectangleRegionTransparent(out captureRectangle);
-                    }
-                    else
-                    {
-                        RegionCaptureTasks.GetRectangleRegion(out captureRectangle, out WindowInfo windowInfo, taskSettings.CaptureSettings.SurfaceOptions);
-
-                        metadata.UpdateInfo(windowInfo);
+                        captureRectangle = selection.Value.Rectangle;
+                        metadata.UpdateInfo(selection.Value.WindowInfo);
                     }
                     break;
                 case ScreenRecordStartMethod.ActiveWindow:
@@ -187,17 +185,19 @@ namespace ShareX
 
             float duration = taskSettings.CaptureSettings.ScreenRecordFixedDuration ? taskSettings.CaptureSettings.ScreenRecordDuration : 0;
 
-            recordForm = new ScreenRecordForm(captureRectangle)
+            recordForm = new ScreenRecordWindow(captureRectangle)
             {
                 ActivateWindow = startMethod == ScreenRecordStartMethod.Region,
                 Duration = duration,
-                AskConfirmationOnAbort = taskSettings.CaptureSettings.ScreenRecordAskConfirmationOnAbort
+                AskConfirmationOnAbort = taskSettings.CaptureSettings.ScreenRecordAskConfirmationOnAbort,
+                ShowRecordingTimer = taskSettings.CaptureSettings.ScreenRecordShowTimer,
+                ShowRecordingButtonLabels = taskSettings.CaptureSettings.ScreenRecordShowButtonLabels
             };
 
             recordForm.StopRequested += StopRecording;
             recordForm.Show();
 
-            Task.Run(() =>
+            _ = Task.Run(() =>
             {
                 try
                 {
@@ -251,6 +251,15 @@ namespace ShareX
                             abortRequested = true;
                         }
 
+                        if (recordForm.ConsumeRestartRequest())
+                        {
+                            screenRecorder?.Dispose();
+                            screenRecorder = null;
+                            FileHelpers.DeleteFile(path);
+                            FileHelpers.DeleteFile(concatPath);
+                            FileHelpers.DeleteFile(tempPath);
+                        }
+
                         if (recordForm.Status == ScreenRecordingStatus.Waiting || recordForm.Status == ScreenRecordingStatus.Paused)
                         {
                             if (recordForm.Status == ScreenRecordingStatus.Paused && File.Exists(path))
@@ -287,6 +296,11 @@ namespace ShareX
                             if (recordForm.Status == ScreenRecordingStatus.Aborted)
                             {
                                 abortRequested = true;
+                            }
+
+                            if (recordForm.RestartRequested)
+                            {
+                                continue;
                             }
                         }
 
@@ -340,25 +354,40 @@ namespace ShareX
                 FileHelpers.DeleteFile(tempPath);
             }).ContinueInCurrentContext(() =>
             {
-                if (!abortRequested && !string.IsNullOrEmpty(path) && File.Exists(path) && TaskHelpers.ShowAfterCaptureForm(taskSettings, out string customFileName, null, path))
+                void FinishRecording(AfterCaptureWindowResult result)
                 {
-                    if (!string.IsNullOrEmpty(customFileName))
+                    if (result.Accepted)
                     {
-                        string currentFileName = Path.GetFileNameWithoutExtension(path);
-                        string ext = Path.GetExtension(path);
+                        string customFileName = result.FileName;
 
-                        if (!currentFileName.Equals(customFileName, StringComparison.OrdinalIgnoreCase))
+                        if (!string.IsNullOrEmpty(customFileName))
                         {
-                            path = FileHelpers.RenameFile(path, customFileName + ext);
+                            string currentFileName = Path.GetFileNameWithoutExtension(path);
+                            string ext = Path.GetExtension(path);
+
+                            if (!currentFileName.Equals(customFileName, StringComparison.OrdinalIgnoreCase))
+                            {
+                                path = FileHelpers.RenameFile(path, customFileName + ext);
+                            }
                         }
+
+                        WorkerTask task = WorkerTask.CreateFileJobTask(path, metadata, taskSettings, customFileName);
+                        TaskManager.Start(task);
                     }
 
-                    WorkerTask task = WorkerTask.CreateFileJobTask(path, metadata, taskSettings, customFileName);
-                    TaskManager.Start(task);
+                    abortRequested = false;
+                    IsRecording = false;
                 }
 
-                abortRequested = false;
-                IsRecording = false;
+                if (!abortRequested && !string.IsNullOrEmpty(path) && File.Exists(path))
+                {
+                    TaskHelpers.ShowAfterCaptureWindow(taskSettings, FinishRecording, null, path);
+                }
+                else
+                {
+                    abortRequested = false;
+                    IsRecording = false;
+                }
             });
         }
 

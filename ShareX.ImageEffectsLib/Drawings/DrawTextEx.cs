@@ -2,7 +2,7 @@
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -26,7 +26,6 @@
 using ShareX.HelpersLib;
 using System.ComponentModel;
 using System.Drawing;
-using System.Drawing.Design;
 using System.Drawing.Drawing2D;
 
 namespace ShareX.ImageEffectsLib
@@ -34,10 +33,10 @@ namespace ShareX.ImageEffectsLib
     [Description("Text")]
     public class DrawTextEx : ImageEffect
     {
-        [DefaultValue("Text"), Editor(typeof(NameParserEditor), typeof(UITypeEditor))]
+        [DefaultValue("Text")]
         public string Text { get; set; }
 
-        [DefaultValue(ContentAlignment.TopLeft), TypeConverter(typeof(EnumProperNameConverter))]
+        [DefaultValue(ContentAlignment.TopLeft)]
         public ContentAlignment Placement { get; set; }
 
         [DefaultValue(typeof(Point), "0, 0")]
@@ -68,13 +67,12 @@ namespace ShareX.ImageEffectsLib
             }
         }
 
-        [DefaultValue(typeof(Color), "235, 235, 235"), Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
+        [DefaultValue(typeof(Color), "235, 235, 235")]
         public Color Color { get; set; }
 
         [DefaultValue(false)]
         public bool UseGradient { get; set; }
 
-        [Editor(typeof(GradientEditor), typeof(UITypeEditor))]
         public GradientInfo Gradient { get; set; }
 
         [DefaultValue(false)]
@@ -83,13 +81,12 @@ namespace ShareX.ImageEffectsLib
         [DefaultValue(5)]
         public int OutlineSize { get; set; }
 
-        [DefaultValue(typeof(Color), "235, 0, 0"), Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
+        [DefaultValue(typeof(Color), "235, 0, 0")]
         public Color OutlineColor { get; set; }
 
         [DefaultValue(false)]
         public bool OutlineUseGradient { get; set; }
 
-        [Editor(typeof(GradientEditor), typeof(UITypeEditor))]
         public GradientInfo OutlineGradient { get; set; }
 
         [DefaultValue(false)]
@@ -98,18 +95,18 @@ namespace ShareX.ImageEffectsLib
         [DefaultValue(typeof(Point), "0, 5")]
         public Point ShadowOffset { get; set; }
 
-        [DefaultValue(typeof(Color), "125, 0, 0, 0"), Editor(typeof(MyColorEditor), typeof(UITypeEditor)), TypeConverter(typeof(MyColorConverter))]
+        [DefaultValue(typeof(Color), "125, 0, 0, 0")]
         public Color ShadowColor { get; set; }
 
         [DefaultValue(false)]
         public bool ShadowUseGradient { get; set; }
 
-        [Editor(typeof(GradientEditor), typeof(UITypeEditor))]
         public GradientInfo ShadowGradient { get; set; }
 
         public DrawTextEx()
         {
             this.ApplyDefaultPropertyValues();
+            Text = Localization.Strings.ImageEffectDefault_Text;
             Gradient = AddDefaultGradient();
             OutlineGradient = AddDefaultGradient();
             ShadowGradient = AddDefaultGradient();

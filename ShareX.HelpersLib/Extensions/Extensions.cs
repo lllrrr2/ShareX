@@ -2,7 +2,7 @@
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -23,7 +23,6 @@
 
 #endregion License Information (GPL v3)
 
-using ShareX.HelpersLib.Properties;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -34,7 +33,9 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.Windows.Forms;
+using MessageBox = ShareX.AvaloniaUI.MessageBox;
+using MessageBoxButtons = ShareX.AvaloniaUI.MessageBoxButtons;
+using MessageBoxIcon = ShareX.AvaloniaUI.MessageBoxIcon;
 
 namespace ShareX.HelpersLib
 {
@@ -400,6 +401,34 @@ namespace ShareX.HelpersLib
             return result;
         }
 
+        public static PointF SmoothPoint(this List<PointF> points, PointF currentPos, int smoothing)
+        {
+            smoothing = Math.Max(0, Math.Min(smoothing, 10));
+            int windowSize = Math.Min(smoothing * 4, points.Count);
+
+            if (windowSize < 1)
+            {
+                return currentPos;
+            }
+
+            float sumX = currentPos.X;
+            float sumY = currentPos.Y;
+            float weight = 1f;
+            float totalWeight = weight;
+            float decay = 0.6f + (smoothing * 0.0175f);
+
+            for (int i = 0; i < windowSize; i++)
+            {
+                PointF p = points[points.Count - 1 - i];
+                weight *= decay;
+                sumX += p.X * weight;
+                sumY += p.Y * weight;
+                totalWeight += weight;
+            }
+
+            return new PointF(sumX / totalWeight, sumY / totalWeight);
+        }
+
         public static Point Center(this Rectangle rect)
         {
             return new Point(rect.X + (rect.Width / 2), rect.Y + (rect.Height / 2));
@@ -432,7 +461,7 @@ namespace ShareX.HelpersLib
         public static void ShowError(this Exception e, bool fullError = true)
         {
             string error = fullError ? e.ToString() : e.Message;
-            MessageBox.Show(error, "ShareX - " + Resources.Error, MessageBoxButtons.OK, MessageBoxIcon.Error);
+            MessageBox.Show(error, "ShareX - " + Localization.Strings.Error, MessageBoxButtons.OK, MessageBoxIcon.Error);
         }
 
         public static Task ContinueInCurrentContext(this Task task, Action action)

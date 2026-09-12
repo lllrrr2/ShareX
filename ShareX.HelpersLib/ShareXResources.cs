@@ -2,7 +2,7 @@
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -143,20 +143,8 @@ namespace ShareX.HelpersLib
                 ApplyCustomThemeToContextMenuStrip(control.ContextMenuStrip);
             }
 
-            if (control is MenuButton mb && mb.Menu != null)
-            {
-                ApplyCustomThemeToContextMenuStrip(mb.Menu);
-            }
-
             switch (control)
             {
-                case ColorButton colorButton:
-                    colorButton.FlatStyle = FlatStyle.Flat;
-                    colorButton.FlatAppearance.BorderColor = Theme.BorderColor;
-                    colorButton.ForeColor = Theme.TextColor;
-                    colorButton.BackColor = Theme.LightBackgroundColor;
-                    colorButton.BorderColor = Theme.BorderColor;
-                    return;
                 case Button btn:
                     btn.FlatStyle = FlatStyle.Flat;
                     btn.FlatAppearance.BorderColor = Theme.BorderColor;
@@ -188,12 +176,6 @@ namespace ShareX.HelpersLib
                     lv.BackColor = Theme.LightBackgroundColor;
                     lv.SupportCustomTheme();
                     return;
-                case SplitContainerCustomSplitter sccs:
-                    sccs.SplitterColor = Theme.BackgroundColor;
-                    sccs.SplitterLineColor = Theme.BorderColor;
-                    sccs.Panel1.BackColor = Theme.BackgroundColor;
-                    sccs.Panel2.BackColor = Theme.BackgroundColor;
-                    break;
                 case SplitContainer sc:
                     sc.Panel1.BackColor = Theme.BackgroundColor;
                     sc.Panel2.BackColor = Theme.BackgroundColor;
@@ -229,7 +211,6 @@ namespace ShareX.HelpersLib
                     return;
                 case ToolStrip ts:
                     ts.Font = Theme.MenuFont;
-                    ts.Renderer = new ToolStripDarkRenderer();
                     ApplyCustomThemeToToolStripItemCollection(ts.Items);
                     return;
                 case LinkLabel ll:
@@ -243,14 +224,6 @@ namespace ShareX.HelpersLib
             foreach (Control child in control.Controls)
             {
                 ApplyCustomThemeToControl(child);
-            }
-
-            switch (control)
-            {
-                case TabToTreeView tttv:
-                    tttv.LeftPanelBackColor = Theme.DarkBackgroundColor;
-                    tttv.SeparatorColor = Theme.SeparatorDarkColor;
-                    break;
             }
         }
 
@@ -288,7 +261,6 @@ namespace ShareX.HelpersLib
         {
             if (cms != null)
             {
-                cms.Renderer = new ToolStripDarkRenderer();
                 cms.Font = Theme.ContextMenuFont;
                 cms.Opacity = Theme.ContextMenuOpacityDouble;
                 ApplyCustomThemeToToolStripItemCollection(cms.Items);

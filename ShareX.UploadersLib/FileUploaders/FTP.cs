@@ -2,7 +2,7 @@
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -26,25 +26,20 @@
 using FluentFTP;
 using FluentFTP.Exceptions;
 using ShareX.HelpersLib;
-using ShareX.UploadersLib.Properties;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Net;
 using System.Net.Security;
-using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
-using System.Windows.Forms;
 
 namespace ShareX.UploadersLib.FileUploaders
 {
     public class FTPFileUploaderService : FileUploaderService
     {
         public override FileDestination EnumValue { get; } = FileDestination.FTP;
-
-        public override Image ServiceImage => Resources.folder_network;
 
         public override bool CheckConfig(UploadersConfig config)
         {
@@ -92,8 +87,6 @@ namespace ShareX.UploadersLib.FileUploaders
 
             return null;
         }
-
-        public override TabPage GetUploadersConfigTabPage(UploadersConfigForm form) => form.tpFTP;
     }
 
     public sealed class FTP : FileUploader, IDisposable
@@ -143,12 +136,11 @@ namespace ShareX.UploadersLib.FileUploaders
                         break;
                 }
 
-                client.Config.SslProtocols = SslProtocols.Tls | SslProtocols.Tls11 | SslProtocols.Tls12;
                 client.Config.DataConnectionEncryption = true;
 
                 if (!string.IsNullOrEmpty(account.FTPSCertificateLocation) && File.Exists(account.FTPSCertificateLocation))
                 {
-                    X509Certificate cert = X509Certificate2.CreateFromSignedFile(Account.FTPSCertificateLocation);
+                    X509Certificate cert = X509CertificateLoader.LoadCertificateFromFile(Account.FTPSCertificateLocation);
                     client.Config.ClientCertificates.Add(cert);
                 }
                 else
@@ -164,8 +156,9 @@ namespace ShareX.UploadersLib.FileUploaders
             }
         }
 
-        public override UploadResult Upload(Stream stream, string fileName)
+        protected override Task<UploadResult> UploadCoreAsync(Stream stream, string fileName, CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             UploadResult result = new UploadResult();
 
             string subFolderPath = Account.GetSubFolderPath(null, NameParserType.FilePath);
@@ -190,7 +183,7 @@ namespace ShareX.UploadersLib.FileUploaders
                 IsUploading = false;
             }
 
-            return result;
+            return Task.FromResult(result);
         }
 
         public override void StopUpload()
@@ -246,7 +239,7 @@ namespace ShareX.UploadersLib.FileUploaders
                         return UploadDataInternal(localStream, remotePath);
                     }
 
-                    throw e;
+                    throw;
                 }
             }
 

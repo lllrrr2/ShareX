@@ -1,8 +1,8 @@
-﻿#region License Information (GPL v3)
+#region License Information (GPL v3)
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -25,7 +25,6 @@
 
 using Microsoft.Win32;
 using Newtonsoft.Json.Linq;
-using ShareX.HelpersLib.Properties;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -39,7 +38,6 @@ using System.Reflection;
 using System.Resources;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
-using System.Security.Permissions;
 using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -196,7 +194,7 @@ namespace ShareX.HelpersLib
 
         public static string[] GetLocalizedEnumDescriptions<T>()
         {
-            return GetLocalizedEnumDescriptions<T>(Resources.ResourceManager);
+            return GetLocalizedEnumDescriptions<T>(Localization.Strings.ResourceManager);
         }
 
         public static string[] GetLocalizedEnumDescriptions<T>(ResourceManager resourceManager)
@@ -216,7 +214,12 @@ namespace ShareX.HelpersLib
 
         public static string[] GetEnumNamesProper<T>()
         {
-            string[] names = Enum.GetNames(typeof(T));
+            return GetEnumNamesProper(typeof(T));
+        }
+
+        public static string[] GetEnumNamesProper(Type enumType)
+        {
+            string[] names = Enum.GetNames(enumType);
             string[] newNames = new string[names.Length];
 
             for (int i = 0; i < names.Length; i++)
@@ -395,7 +398,22 @@ namespace ShareX.HelpersLib
             return time;
         }
 
-        public static void PlaySoundAsync(Stream stream)
+        public static void PlaySound(Stream stream)
+        {
+            if (stream != null)
+            {
+                Task.Run(() =>
+                {
+                    using (stream)
+                    using (SoundPlayer soundPlayer = new SoundPlayer(stream))
+                    {
+                        soundPlayer.Play();
+                    }
+                });
+            }
+        }
+
+        public static void PlaySoundSync(Stream stream)
         {
             if (stream != null)
             {
@@ -549,7 +567,7 @@ namespace ShareX.HelpersLib
                     }
                     else
                     {
-                        status[i] = "Timeout";
+                        status[i] = Localization.Strings.Helpers_Timeout;
                     }
                     Thread.Sleep(100);
                 }
@@ -708,7 +726,7 @@ namespace ShareX.HelpersLib
 
         public static byte[] ComputeSHA256(byte[] data)
         {
-            using (SHA256Managed hashAlgorithm = new SHA256Managed())
+            using (HashAlgorithm hashAlgorithm = SHA256.Create())
             {
                 return hashAlgorithm.ComputeHash(data);
             }
@@ -718,7 +736,7 @@ namespace ShareX.HelpersLib
         {
             BufferedStream bufferedStream = new BufferedStream(stream, bufferSize);
 
-            using (SHA256Managed hashAlgorithm = new SHA256Managed())
+            using (HashAlgorithm hashAlgorithm = SHA256.Create())
             {
                 return hashAlgorithm.ComputeHash(bufferedStream);
             }
@@ -817,24 +835,6 @@ namespace ShareX.HelpersLib
             return result;
         }
 
-        [ReflectionPermission(SecurityAction.Assert, MemberAccess = true)]
-        public static bool TryFixHandCursor()
-        {
-            try
-            {
-                // https://referencesource.microsoft.com/#System.Windows.Forms/winforms/Managed/System/WinForms/Cursors.cs,423
-                typeof(Cursors).GetField("hand", BindingFlags.NonPublic | BindingFlags.Static)
-                    .SetValue(null, new Cursor(NativeMethods.LoadCursor(IntPtr.Zero, NativeConstants.IDC_HAND)));
-
-                return true;
-            }
-            catch
-            {
-                // If it fails, we'll just have to live with the old hand.
-                return false;
-            }
-        }
-
         public static bool IsTabletMode()
         {
             //int state = NativeMethods.GetSystemMetrics(SystemMetric.SM_CONVERTIBLESLATEMODE);
@@ -931,7 +931,7 @@ namespace ShareX.HelpersLib
 
         public static string GetChecksum(string filePath)
         {
-            using (SHA256Managed hashAlgorithm = new SHA256Managed())
+            using (HashAlgorithm hashAlgorithm = SHA256.Create())
             {
                 return GetChecksum(filePath, hashAlgorithm);
             }
@@ -988,6 +988,24 @@ namespace ShareX.HelpersLib
         {
             form.Activated += (sender, e) => Cursor.Clip = form.Bounds;
             form.Deactivate += (sender, e) => Cursor.Clip = Rectangle.Empty;
+        }
+
+        public static void LockCursorToWindow(Avalonia.Controls.Window window)
+        {
+            window.Activated += (sender, e) =>
+            {
+                IntPtr handle = window.TryGetPlatformHandle()?.Handle ?? IntPtr.Zero;
+                if (handle != IntPtr.Zero)
+                {
+                    Rectangle bounds = NativeMethods.GetWindowRect(handle);
+                    if (bounds.Width > 0 && bounds.Height > 0)
+                    {
+                        Cursor.Clip = bounds;
+                    }
+                }
+            };
+            window.Deactivated += (sender, e) => Cursor.Clip = Rectangle.Empty;
+            window.Closed += (sender, e) => Cursor.Clip = Rectangle.Empty;
         }
 
         public static bool IsDefaultSettings<T>(IEnumerable<T> current, IEnumerable<T> source, Func<T, T, bool> predicate)

@@ -2,7 +2,7 @@
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -25,9 +25,7 @@
 
 using Renci.SshNet;
 using Renci.SshNet.Common;
-using Renci.SshNet.Sftp;
 using ShareX.HelpersLib;
-using ShareX.UploadersLib.Properties;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -49,8 +47,9 @@ namespace ShareX.UploadersLib.FileUploaders
             Account = account;
         }
 
-        public override UploadResult Upload(Stream stream, string fileName)
+        protected override Task<UploadResult> UploadCoreAsync(Stream stream, string fileName, CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             UploadResult result = new UploadResult();
 
             string subFolderPath = Account.GetSubFolderPath();
@@ -77,7 +76,7 @@ namespace ShareX.UploadersLib.FileUploaders
                 IsUploading = false;
             }
 
-            return result;
+            return Task.FromResult(result);
         }
 
         public override void StopUpload()
@@ -105,7 +104,7 @@ namespace ShareX.UploadersLib.FileUploaders
                 {
                     if (!File.Exists(Account.Keypath))
                     {
-                        throw new FileNotFoundException(Resources.UploadersConfigForm_ConnectSFTPAccount_Key_file_not_found, Account.Keypath);
+                        throw new FileNotFoundException(Localization.Strings.SFTP_Key_file_not_found, Account.Keypath);
                     }
 
                     PrivateKeyFile keyFile;
@@ -218,10 +217,40 @@ namespace ShareX.UploadersLib.FileUploaders
             {
                 try
                 {
-                    using (SftpFileStream sftpStream = client.Create(remotePath))
+                    long fileSize = stream.CanSeek ? stream.Length : -1;
+                    ProgressManager progress = fileSize > 0 ? new ProgressManager(fileSize) : null;
+                    ulong lastUploadedBytes = 0;
+                    object progressLock = new object();
+
+                    // We have to use a lock here because UploadFile fires progress callbacks concurrently from multiple threads.
+                    client.UploadFile(stream, remotePath, canOverride: true, uploadedBytes =>
                     {
-                        return TransferData(stream, sftpStream);
-                    }
+                        if (StopUploadRequested)
+                        {
+                            Disconnect();
+                            return;
+                        }
+
+                        if (AllowReportProgress && progress != null)
+                        {
+                            lock (progressLock)
+                            {
+                                long delta = (long)(uploadedBytes - lastUploadedBytes);
+
+                                if (delta > 0)
+                                {
+                                    lastUploadedBytes = uploadedBytes;
+
+                                    if (progress.UpdateProgress(delta))
+                                    {
+                                        OnProgressChanged(progress);
+                                    }
+                                }
+                            }
+                        }
+                    });
+
+                    return !StopUploadRequested;
                 }
                 catch (SftpPathNotFoundException) when (autoCreateDirectory)
                 {

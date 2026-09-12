@@ -2,7 +2,7 @@
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -24,10 +24,8 @@
 #endregion License Information (GPL v3)
 
 using ShareX.HelpersLib;
-using ShareX.Properties;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows.Forms;
 
 namespace ShareX
 {
@@ -139,50 +137,7 @@ namespace ShareX
 
         private void UpdateTrayMenu()
         {
-            ToolStripMenuItem tsmi = Program.MainForm.tsmiTrayRecentItems;
-
-            if (Program.Settings.RecentTasksSave && Program.Settings.RecentTasksShowInTrayMenu && Tasks.Count > 0)
-            {
-                tsmi.Visible = true;
-
-                tsmi.DropDownItems.Clear();
-                ToolStripMenuItem tsmiTip = new ToolStripMenuItem(Resources.RecentManager_UpdateRecentMenu_Left_click_to_copy_URL_to_clipboard__Right_click_to_open_URL_);
-                tsmiTip.Enabled = false;
-                tsmi.DropDownItems.Add(tsmiTip);
-                tsmi.DropDownItems.Add(new ToolStripSeparator());
-
-                foreach (RecentTask task in Tasks)
-                {
-                    ToolStripMenuItem tsmiLink = new ToolStripMenuItem();
-                    tsmiLink.Text = task.TrayMenuText;
-                    string link = task.ToString();
-                    tsmiLink.ToolTipText = link;
-                    tsmiLink.MouseUp += (sender, e) =>
-                    {
-                        if (e.Button == MouseButtons.Left)
-                        {
-                            ClipboardHelpers.CopyText(link);
-                        }
-                        else if (e.Button == MouseButtons.Right)
-                        {
-                            URLHelpers.OpenURL(link);
-                        }
-                    };
-
-                    if (Program.Settings.RecentTasksTrayMenuMostRecentFirst)
-                    {
-                        tsmi.DropDownItems.Insert(2, tsmiLink);
-                    }
-                    else
-                    {
-                        tsmi.DropDownItems.Add(tsmiLink);
-                    }
-                }
-            }
-            else
-            {
-                tsmi.Visible = false;
-            }
+            MainWindowIntegration.RefreshMenus();
         }
 
         private void UpdateMainWindowList()

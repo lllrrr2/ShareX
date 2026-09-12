@@ -2,7 +2,7 @@
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -91,12 +91,12 @@ namespace ShareX.ScreenCaptureLib
                 bestIgnoreBottomOffset = 0;
                 Reset();
 
-                ScrollingCaptureRegionForm regionForm = null;
+                ScrollingCaptureRegionWindow regionWindow = null;
 
                 if (Options.ShowRegion)
                 {
-                    regionForm = new ScrollingCaptureRegionForm(selectedRectangle);
-                    regionForm.Show();
+                    regionWindow = new ScrollingCaptureRegionWindow(selectedRectangle);
+                    regionWindow.Show();
                 }
 
                 try
@@ -192,7 +192,7 @@ namespace ShareX.ScreenCaptureLib
                 }
                 finally
                 {
-                    regionForm?.Close();
+                    regionWindow?.Close();
 
                     Reset(true);
                     IsCapturing = false;
@@ -210,9 +210,17 @@ namespace ShareX.ScreenCaptureLib
             }
         }
 
-        public bool SelectWindow()
+        public async Task<bool> SelectWindowAsync()
         {
-            return RegionCaptureTasks.GetRectangleRegion(out selectedRectangle, out selectedWindow, new RegionCaptureOptions());
+            var selection = await RegionCaptureTasks.GetRectangleRegionAsync(new RegionCaptureOptions());
+            if (selection == null)
+            {
+                return false;
+            }
+
+            selectedRectangle = selection.Value.Rectangle;
+            selectedWindow = selection.Value.WindowInfo;
+            return selectedWindow != null;
         }
 
         private bool IsScrollReachedBottom(IntPtr handle)

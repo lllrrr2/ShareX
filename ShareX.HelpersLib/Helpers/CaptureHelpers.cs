@@ -2,7 +2,7 @@
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -40,6 +40,12 @@ namespace ShareX.HelpersLib
         public static Rectangle GetScreenWorkingArea()
         {
             return Screen.AllScreens.Select(x => x.WorkingArea).Combine();
+        }
+
+        public static Rectangle GetScreenBounds(IntPtr handle, bool workingArea)
+        {
+            Screen screen = Screen.FromHandle(handle);
+            return workingArea ? screen.WorkingArea : screen.Bounds;
         }
 
         private static Rectangle GetScreenBounds2()

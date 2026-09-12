@@ -2,7 +2,7 @@
 
 /*
     ShareX - A program that allows you to take screenshots and share any file type
-    Copyright (c) 2007-2025 ShareX Team
+    Copyright (c) 2007-2026 ShareX Team
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -58,7 +58,6 @@ namespace ShareX.HelpersLib
             {
                 ia.ClearColorMatrix();
                 ia.SetColorMatrix(matrix, ColorMatrixFlag.Default, ColorAdjustType.Bitmap);
-                g.SetHighQuality();
                 g.DrawImage(src, destRect, 0, 0, src.Width, src.Height, GraphicsUnit.Pixel, ia);
             }
         }
@@ -76,7 +75,6 @@ namespace ShareX.HelpersLib
             {
                 ia.ClearColorMatrix();
                 ia.SetGamma(value, ColorAdjustType.Bitmap);
-                g.SetHighQuality();
                 g.DrawImage(bmp, new Rectangle(0, 0, bmp.Width, bmp.Height), 0, 0, bmp.Width, bmp.Height, GraphicsUnit.Pixel, ia);
             }
 
